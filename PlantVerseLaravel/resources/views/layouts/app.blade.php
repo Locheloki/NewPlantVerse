@@ -2,14 +2,11 @@
 
 @section('content')
 <div class="flex h-screen bg-gray-50">
-    <!-- Sidebar -->
     <div class="hidden md:flex md:flex-col md:w-64 md:bg-white md:shadow-lg">
-        <!-- Logo/Header -->
         <div class="p-6 border-b border-gray-200">
             <h1 class="text-2xl font-bold text-green-600">🌿 PlantVerse</h1>
         </div>
 
-        <!-- Navigation -->
         <nav class="flex-1 px-4 py-6 space-y-2">
             <a href="{{ route('dashboard') }}" class="flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard') ? 'bg-green-50 text-green-600' : 'text-gray-700 hover:bg-gray-50' }}">
                 <i class="fas fa-chart-line mr-3"></i>
@@ -29,20 +26,24 @@
             </a>
         </nav>
 
-        <!-- User Info -->
         <div class="p-4 border-t border-gray-200">
-            <div class="flex items-center justify-between bg-green-50 p-3 rounded-lg">
-                <div>
-                    <p class="text-sm font-medium text-gray-700">{{ $user->name ?? 'User' }}</p>
-                    <p class="text-xs text-gray-500">{{ $user->email ?? '' }}</p>
+            <div class="flex flex-col bg-green-50 p-3 rounded-lg">
+                <div class="mb-2">
+                    <p class="text-sm font-medium text-gray-700">{{ auth()->user()->name ?? 'User' }}</p>
+                    <p class="text-xs text-gray-500">{{ auth()->user()->email ?? '' }}</p>
                 </div>
+
+                <form method="POST" action="{{ route('logout') }}" class="w-full">
+                    @csrf
+                    <button type="submit" class="w-full text-left text-sm text-red-600 hover:text-red-800 font-medium flex items-center mt-2 pt-2 border-t border-green-200 transition-colors">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Log Out
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Main Content -->
     <div class="flex-1 flex flex-col overflow-hidden">
-        <!-- Header -->
         <div class="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
             <div class="flex items-center">
                 <button class="md:hidden mr-4 text-gray-600">
@@ -50,15 +51,17 @@
                 </button>
                 <h2 class="text-xl font-semibold text-gray-800">@yield('page-title', 'PlantVerse')</h2>
             </div>
+
             <div class="flex items-center space-x-4">
+                @auth
                 <div class="flex items-center bg-green-100 px-3 py-2 rounded-lg">
                     <i class="fas fa-coins text-yellow-500 mr-2"></i>
-                    <span class="font-semibold text-green-700">{{ $user->pvt_balance ?? 0 }} PVT</span>
+                    <span class="font-semibold text-green-700">{{ auth()->user()->pvt_balance ?? 0 }} PVT</span>
                 </div>
+                @endauth
             </div>
         </div>
 
-        <!-- Content -->
         <div class="flex-1 overflow-auto">
             <div class="p-6">
                 @if ($message = Session::get('success'))

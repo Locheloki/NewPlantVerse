@@ -9,7 +9,7 @@ class MilestonesController extends Controller
 {
     public function index()
     {
-        $user = User::firstOrFail();
+        $user = auth()->user();
         $milestones = Milestone::where('user_id', $user->id)->get();
 
         return view('pages.milestones.index', [

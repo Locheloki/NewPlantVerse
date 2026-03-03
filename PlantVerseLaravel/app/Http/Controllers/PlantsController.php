@@ -19,7 +19,7 @@ class PlantsController extends Controller
 
     public function index()
     {
-        $user = User::firstOrFail();
+        $user = auth()->user();
         $plants = Plant::where('user_id', $user->id)->get();
 
         return view('pages.plants.index', [
@@ -31,7 +31,7 @@ class PlantsController extends Controller
     public function show($id)
     {
         $plant = Plant::findOrFail($id);
-        $user = User::firstOrFail();
+        $user = auth()->user();
 
         return view('pages.plants.show', [
             'plant' => $plant,
@@ -46,7 +46,7 @@ class PlantsController extends Controller
 
     public function store(Request $request)
     {
-        $user = User::firstOrFail();
+        $user = auth()->user();
 
         $validated = $request->validate([
             'name' => 'required|string',
@@ -102,7 +102,7 @@ class PlantsController extends Controller
         $task->update(['last_completed' => now()]);
 
         // Increase PVT balance
-        $user = User::firstOrFail();
+        $user = auth()->user();
         $user->increment('pvt_balance', 10);
 
         return redirect()->back()->with('success', "{$taskType} logged successfully! +10 PVT");

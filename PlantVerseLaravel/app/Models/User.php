@@ -2,30 +2,40 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+// 1. Remove this line if it exists:
+// use Illuminate\Database\Eloquent\Model;
 
-class User extends Model
+// 2. Add these lines:
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+// 3. Change "extends Model" to "extends Authenticatable"
+class User extends Authenticatable
 {
+    use Notifiable;
+
     protected $fillable = [
         'name',
         'email',
+        'password',
         'pvt_balance',
-        'on_time_care_percentage',
     ];
 
-    protected $casts = [
-        'pvt_balance' => 'integer',
-        'on_time_care_percentage' => 'integer',
+    protected $hidden = [
+        'password',
+        'remember_token',
     ];
 
-    public function plants(): HasMany
+    protected function casts(): array
     {
-        return $this->hasMany(Plant::class);
+        return [
+            'password' => 'hashed',
+        ];
     }
 
-    public function milestones(): HasMany
+    // Any existing relationships you have (like plants) go here:
+    public function plants()
     {
-        return $this->hasMany(Milestone::class);
+        return $this->hasMany(Plant::class);
     }
 }

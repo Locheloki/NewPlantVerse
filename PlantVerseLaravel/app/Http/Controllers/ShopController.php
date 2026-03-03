@@ -9,7 +9,7 @@ class ShopController extends Controller
 {
     public function index()
     {
-        $user = User::firstOrFail();
+        $user = auth()->user();
         $rewards = Reward::all();
 
         return view('pages.shop.index', [
@@ -21,7 +21,7 @@ class ShopController extends Controller
 
     public function redeem($rewardId)
     {
-        $user = User::firstOrFail();
+        $user = auth()->user();
         $reward = Reward::findOrFail($rewardId);
 
         if ($user->pvt_balance < $reward->pvt_cost) {

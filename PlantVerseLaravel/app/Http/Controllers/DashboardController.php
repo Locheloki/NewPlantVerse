@@ -10,8 +10,7 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // For now, using the first user (in production, use Auth::user())
-        $user = User::firstOrFail();
+        $user = auth()->user();
 
         $plants = Plant::where('user_id', $user->id)->get();
 
