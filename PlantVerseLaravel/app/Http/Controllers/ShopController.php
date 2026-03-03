@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\Reward;
+use Illuminate\Http\Request;
 
 class ShopController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
         $rewards = Reward::all();
 
         return view('pages.shop.index', [
@@ -19,9 +21,11 @@ class ShopController extends Controller
         ]);
     }
 
-    public function redeem($rewardId)
+    public function redeem(Request $request, $rewardId)
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
         $reward = Reward::findOrFail($rewardId);
 
         if ($user->pvt_balance < $reward->pvt_cost) {

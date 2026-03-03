@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\Plant;
 use App\Services\GeminiService;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class PlantsController extends Controller
 {
@@ -17,9 +15,10 @@ class PlantsController extends Controller
         $this->geminiService = $geminiService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = $request->user();
         $plants = Plant::where('user_id', $user->id)->get();
 
         return view('pages.plants.index', [
@@ -28,10 +27,12 @@ class PlantsController extends Controller
         ]);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $plant = Plant::findOrFail($id);
-        $user = auth()->user();
+
+        /** @var \App\Models\User $user */
+        $user = $request->user();
 
         return view('pages.plants.show', [
             'plant' => $plant,
@@ -46,7 +47,8 @@ class PlantsController extends Controller
 
     public function store(Request $request)
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = $request->user();
 
         $validated = $request->validate([
             'name' => 'required|string',
@@ -87,7 +89,7 @@ class PlantsController extends Controller
         return redirect()->route('plants.show', $plant)->with('success', 'Plant added successfully!');
     }
 
-    public function logCare($plantId, $taskType)
+    public function logCare(Request $request, $plantId, $taskType)
     {
         $plant = Plant::findOrFail($plantId);
         $task = $plant->careTasks()->where('type', $taskType)->firstOrFail();
@@ -102,7 +104,8 @@ class PlantsController extends Controller
         $task->update(['last_completed' => now()]);
 
         // Increase PVT balance
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = $request->user();
         $user->increment('pvt_balance', 10);
 
         return redirect()->back()->with('success', "{$taskType} logged successfully! +10 PVT");
