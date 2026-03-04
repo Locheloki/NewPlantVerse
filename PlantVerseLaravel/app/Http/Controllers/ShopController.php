@@ -36,4 +36,30 @@ class ShopController extends Controller
 
         return redirect()->back()->with('success', "You redeemed {$reward->title}!");
     }
+
+    public function edit(Request $request, $rewardId)
+    {
+        abort_unless($request->user()->isAdmin(), 403, 'Unauthorized access.');
+
+        $reward = Reward::findOrFail($rewardId);
+        return view('pages.shop.edit', compact('reward'));
+    }
+
+    public function update(Request $request, $rewardId)
+    {
+        abort_unless($request->user()->isAdmin(), 403, 'Unauthorized access.');
+
+        $reward = Reward::findOrFail($rewardId);
+
+        $validatedData = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'pvt_cost' => 'required|integer|min:0',
+            'icon' => 'nullable|string|max:10',
+        ]);
+
+        $reward->update($validatedData);
+
+        return redirect()->route('shop.index')->with('success', 'Reward updated successfully!');
+    }
 }

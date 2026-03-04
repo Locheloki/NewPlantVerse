@@ -50,6 +50,12 @@
                     <i class="fas fa-bars text-xl"></i>
                 </button>
                 <h2 class="text-xl font-semibold text-gray-800">@yield('page-title', 'PlantVerse')</h2>
+
+                @if(auth()->check() && auth()->user()->isAdmin())
+                <span class="ml-4 px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded border border-purple-300 shadow-sm flex items-center">
+                    <i class="fas fa-user-shield mr-1"></i> Administrator Mode
+                </span>
+                @endif
             </div>
 
             <div class="flex items-center space-x-4">

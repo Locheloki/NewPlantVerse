@@ -47,5 +47,9 @@ Route::middleware('auth')->group(function () {
     Route::prefix('/shop')->group(function () {
         Route::get('/', [ShopController::class, 'index'])->name('shop.index');
         Route::post('/redeem/{rewardId}', [ShopController::class, 'redeem'])->name('shop.redeem');
+
+        // --- ADMIN ROUTES ---
+        Route::get('/{rewardId}/edit', [ShopController::class, 'edit'])->name('shop.edit');
+        Route::put('/{rewardId}', [ShopController::class, 'update'])->name('shop.update');
     });
 });

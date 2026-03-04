@@ -4,7 +4,6 @@
 
 @section('main-content')
 <div class="space-y-6">
-    <!-- Eligibility Alert -->
     @if(!$isEligible)
     <div class="p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg">
         <i class="fas fa-exclamation-triangle mr-2"></i>
@@ -12,21 +11,17 @@
     </div>
     @endif
 
-    <!-- Rewards Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         @forelse($rewards as $reward)
         <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-            <!-- Icon/Image -->
             <div class="h-40 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
                 <span class="text-6xl">{{ $reward->icon ?? '🎁' }}</span>
             </div>
 
-            <!-- Content -->
             <div class="p-6">
                 <h3 class="text-lg font-bold text-gray-800 mb-2">{{ $reward->title }}</h3>
                 <p class="text-sm text-gray-600 mb-4">{{ $reward->description }}</p>
 
-                <!-- Cost -->
                 <div class="mb-4 p-3 bg-green-50 rounded-lg text-center">
                     <p class="text-xs text-gray-600 mb-1">Cost:</p>
                     <p class="text-2xl font-bold text-green-600">
@@ -34,7 +29,6 @@
                     </p>
                 </div>
 
-                <!-- Redeem Button -->
                 @if($user->pvt_balance >= $reward->pvt_cost)
                 <form action="{{ route('shop.redeem', $reward->id) }}" method="POST">
                     @csrf
@@ -46,6 +40,14 @@
                 <button disabled class="w-full bg-gray-400 text-white px-4 py-2 rounded-lg font-medium cursor-not-allowed">
                     <i class="fas fa-lock mr-2"></i>Not Enough PVT
                 </button>
+                @endif
+
+                @if(auth()->user()->isAdmin())
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <a href="{{ route('shop.edit', $reward->id) }}" class="w-full block text-center bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg font-medium transition">
+                        <i class="fas fa-edit mr-2"></i>Edit Listing
+                    </a>
+                </div>
                 @endif
             </div>
         </div>
