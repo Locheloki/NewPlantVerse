@@ -49,4 +49,12 @@ class Plant extends Model
     {
         return $this->hasMany(CareTask::class);
     }
+
+    /**
+     * Get all journal entries for this plant's growth and care history
+     */
+    public function journals(): HasMany
+    {
+        return $this->hasMany(PlantJournal::class);
+    }
 }

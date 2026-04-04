@@ -22,6 +22,8 @@ class User extends Authenticatable
         'pvt_balance',
         'is_admin',
         'on_time_care_percentage',
+        'is_on_vacation',
+        'vacation_ends_at',
     ];
 
     protected $hidden = [
@@ -34,6 +36,8 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'is_on_vacation' => 'boolean',
+            'vacation_ends_at' => 'datetime',
         ];
     }
 

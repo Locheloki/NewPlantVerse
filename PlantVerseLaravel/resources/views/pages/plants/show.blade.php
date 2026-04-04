@@ -4,10 +4,55 @@
 
 @section('main-content')
 <div class="space-y-6">
-    <!-- Back Button -->
-    <a href="{{ route('plants.index') }}" class="inline-flex items-center text-green-600 hover:text-green-700">
-        <i class="fas fa-arrow-left mr-2"></i>Back to Plants
-    </a>
+    <!-- Header with Back Button and Delete -->
+    <div class="flex items-center justify-between">
+        <a href="{{ route('plants.index') }}" class="inline-flex items-center text-green-600 hover:text-green-700">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Plants
+        </a>
+        <button
+            onclick="openDeleteModal()"
+            class="text-red-600 hover:text-red-700 inline-flex items-center transition"
+            title="Delete this plant">
+            <i class="fas fa-trash-alt mr-1"></i>Delete
+        </button>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div
+        id="deleteModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"
+        onclick="if(event.target === this) closeDeleteModal()">
+        <div class="bg-white rounded-lg shadow-xl max-w-sm mx-4">
+            <div class="p-6">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-center text-gray-800 mb-2">Delete {{ $plant->name }}?</h3>
+                <p class="text-gray-600 text-center mb-6">This action cannot be undone. All care tasks and plant data will be permanently deleted.</p>
+                <div class="flex gap-4">
+                    <button
+                        type="button"
+                        onclick="closeDeleteModal()"
+                        class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition">
+                        Cancel
+                    </button>
+                    <form
+                        id="deleteForm"
+                        action="{{ route('plants.destroy', $plant) }}"
+                        method="POST"
+                        class="flex-1">
+                        @csrf
+                        @method('DELETE')
+                        <button
+                            type="submit"
+                            class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition">
+                            Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Plant Image and Info -->
@@ -58,9 +103,14 @@
         <div class="lg:col-span-2 space-y-6">
             <!-- Care Schedule -->
             <div class="bg-white rounded-lg shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">
-                    <i class="fas fa-calendar-check text-green-600 mr-2"></i>Care Schedule
-                </h3>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">
+                        <i class="fas fa-calendar-check text-green-600 mr-2"></i>Care Schedule
+                    </h3>
+                    <a href="{{ route('plants.care-schedule.edit', $plant) }}" class="text-sm bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-1 rounded-lg transition">
+                        <i class="fas fa-sliders-h mr-1"></i>Customize
+                    </a>
+                </div>
 
                 <div class="space-y-4">
                     @forelse($plant->careTasks as $task)
@@ -154,6 +204,14 @@
     document.addEventListener('alpine:init', () => {
         // Alpine components are ready
     });
+
+    function openDeleteModal() {
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+    }
 
     function getAdvice() {
         // This will be populated by Alpine.js

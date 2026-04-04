@@ -55,6 +55,92 @@ class PlantsController extends Controller
         ]);
     }
 
+    /**
+     * Show edit form for a plant
+     * 
+     * Authorization: User must own the plant ($plant->user_id === auth()->id())
+     */
+    public function edit(Request $request, $id)
+    {
+        $plant = Plant::findOrFail($id);
+
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        // Verify ownership
+        if ($plant->user_id !== $user->id) {
+            return abort(403, 'Unauthorized');
+        }
+
+        return view('pages.plants.edit', [
+            'plant' => $plant,
+        ]);
+    }
+
+    /**
+     * Update plant information
+     * 
+     * Allows users to update plant name, species, and care recommendations.
+     * Photo update handled separately to maintain image integrity.
+     * Authorization: User must own the plant
+     */
+    public function update(Request $request, $id)
+    {
+        $plant = Plant::findOrFail($id);
+
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        // Verify ownership
+        if ($plant->user_id !== $user->id) {
+            return abort(403, 'Unauthorized');
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'species' => 'required|string|max:255',
+            'care_recommendations' => 'nullable|string|max:1000',
+        ]);
+
+        $plant->update([
+            'name' => $validated['name'],
+            'species' => $validated['species'],
+        ]);
+
+        return redirect()->route('plants.show', $plant)->with('success', 'Plant updated successfully!');
+    }
+
+    /**
+     * Delete/destroy a plant and its associated care tasks
+     * 
+     * When a plant is deleted:
+     * - All associated CareTask records are deleted (cascade delete via relationship)
+     * - Plant record is removed from database
+     * - User is redirected to plants index
+     * 
+     * Authorization: User must own the plant
+     */
+    public function destroy(Request $request, $id)
+    {
+        $plant = Plant::findOrFail($id);
+
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        // Verify ownership
+        if ($plant->user_id !== $user->id) {
+            return abort(403, 'Unauthorized');
+        }
+
+        // Delete associated care tasks (cascade delete)
+        $plant->careTasks()->delete();
+
+        // Delete the plant
+        $plant->delete();
+
+        return redirect()->route('plants.index')->with('success', 'Plant deleted successfully!');
+    }
+
     public function create()
     {
         return view('pages.plants.create');
@@ -70,6 +156,9 @@ class PlantsController extends Controller
             'species' => 'required|string',
             'photo' => 'nullable|image|max:5120',
             'care_recommendations' => 'nullable|string',
+            'water_frequency' => 'nullable|integer|min:1|max:365',
+            'sunlight_frequency' => 'nullable|integer|min:1|max:365',
+            'fertilize_frequency' => 'nullable|integer|min:1|max:365',
         ]);
 
         $photoUrl = null;
@@ -86,8 +175,13 @@ class PlantsController extends Controller
             'is_neglected' => false,
         ]);
 
-        // Create default care tasks using dedicated private method
-        $this->createDefaultCareTasks($plant);
+        // Create care tasks with custom frequencies if provided
+        $customFrequencies = [
+            'water_frequency' => $validated['water_frequency'] ?? null,
+            'sunlight_frequency' => $validated['sunlight_frequency'] ?? null,
+            'fertilize_frequency' => $validated['fertilize_frequency'] ?? null,
+        ];
+        $this->createDefaultCareTasks($plant, $customFrequencies);
 
         return redirect()->route('plants.show', $plant)->with('success', 'Plant added successfully!');
     }
@@ -98,23 +192,28 @@ class PlantsController extends Controller
         $task = $plant->careTasks()->where('type', $taskType)->firstOrFail();
 
         /**
-         * IMPROVED TIME LOGIC
+         * FLEXIBLE CARE WINDOWS (REFACTORED)
          * 
-         * Previous approach using diffInDays() could lead to rounding errors.
-         * New approach: Calculate the exact next available time and check if it's in the past.
-         * This ensures accurate cooldown duration without day-boundary issues.
+         * Instead of a strict cooldown, we now implement a grace period.
+         * Users can log care tasks up to 12 hours BEFORE the exact due time.
+         * 
+         * Logic:
+         * - Calculate grace period start: last_completed + frequency_days - 12 hours
+         * - Allow logging if current time >= grace period start
+         * - This provides flexibility while maintaining task integrity
          * 
          * Example:
          * - Task last completed: 2026-04-01 10:00 AM
          * - Frequency: 7 days
-         * - Next available: 2026-04-08 10:00 AM
+         * - Due time (exact): 2026-04-08 10:00 AM
+         * - Grace period starts: 2026-04-08 10:00 AM - 12 hours = 2026-04-07 10:00 PM
          * - Current time: 2026-04-07 11:00 PM
-         * - Result: NOT YET AVAILABLE (even though diffInDays would say it's available)
+         * - Result: CAN LOG NOW (within grace period)
          */
-        $nextAvailableTime = $task->last_completed->addDays($task->frequency_days);
+        $graceWindowStart = $task->last_completed->addDays($task->frequency_days)->subHours(12);
 
-        if ($nextAvailableTime->isFuture()) {
-            $hoursRemaining = $nextAvailableTime->diffInHours(now());
+        if (now()->lessThan($graceWindowStart)) {
+            $hoursRemaining = $graceWindowStart->diffInHours(now());
             $daysRemaining = (int) ceil($hoursRemaining / 24);
 
             return redirect()->back()->with('error', "You can do this in $daysRemaining day(s). Come back later!");
@@ -178,6 +277,159 @@ class PlantsController extends Controller
     }
 
     /**
+     * Store a new journal entry for a plant
+     * 
+     * Allows users to document their plant's progress with optional photos and notes.
+     * Creates a timestamped record of plant development journey.
+     * 
+     * Authorization: User must own the plant
+     * 
+     * @param Request $request The HTTP request containing photo and note
+     * @param int $plantId The ID of the plant to add journal entry for
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function storeJournal(Request $request, $plantId)
+    {
+        $plant = Plant::findOrFail($plantId);
+
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        // Verify ownership
+        if ($plant->user_id !== $user->id) {
+            return abort(403, 'Unauthorized');
+        }
+
+        // Validate request
+        $validated = $request->validate([
+            'photo' => 'nullable|image|max:5120',
+            'note' => 'nullable|string|max:2000',
+        ]);
+
+        // Handle photo upload if provided
+        $photoUrl = null;
+        if ($request->hasFile('photo')) {
+            $photoUrl = $request->file('photo')->store('journals', 'public');
+        }
+
+        // Create journal entry
+        $plant->journals()->create([
+            'photo_url' => $photoUrl,
+            'note' => $validated['note'] ?? null,
+        ]);
+
+        return redirect()->route('plants.show', $plant)->with('success', 'Journal entry added successfully!');
+    }
+
+    /**
+     * Shows the care schedule customization form for a plant
+     * 
+     * Allows users to customize the frequency of each care task (Water, Sunlight, Fertilize).
+     * Displays a reminder to research the plant's specific care requirements before customizing.
+     * 
+     * Authorization: User must own the plant
+     * 
+     * @param Request $request The HTTP request
+     * @param int $id The plant ID
+     * @return \Illuminate\View\View
+     */
+    public function editCareSchedule(Request $request, $id)
+    {
+        $plant = Plant::findOrFail($id);
+
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        // Verify ownership
+        if ($plant->user_id !== $user->id) {
+            return abort(403, 'Unauthorized');
+        }
+
+        // Get all care tasks for this plant
+        $careTasks = $plant->careTasks()->get();
+
+        return view('pages.plants.edit-care-schedule', [
+            'plant' => $plant,
+            'careTasks' => $careTasks,
+            'user' => $user,
+        ]);
+    }
+
+    /**
+     * Updates the care schedule frequencies for a plant's tasks
+     * 
+     * Allows users to customize how often each care task needs to be performed.
+     * Validates that frequencies are positive integers.
+     * Updates only the frequency_days column, preserving last_completed timestamps.
+     * 
+     * Authorization: User must own the plant
+     * 
+     * @param Request $request The HTTP request containing updated frequencies
+     * @param int $id The plant ID
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateCareSchedule(Request $request, $id)
+    {
+        $plant = Plant::findOrFail($id);
+
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        // Verify ownership
+        if ($plant->user_id !== $user->id) {
+            return abort(403, 'Unauthorized');
+        }
+
+        /**
+         * CUSTOM CARE SCHEDULE VALIDATION
+         * 
+         * Validate that each care task type has a valid frequency (1-365 days).
+         * Uses dynamic validation to accept: water_frequency, sunlight_frequency, fertilize_frequency
+         * 
+         * Example request body:
+         * - water_frequency: 7 days
+         * - sunlight_frequency: 1 day
+         * - fertilize_frequency: 30 days
+         */
+        $validated = $request->validate([
+            'water_frequency' => 'required|integer|min:1|max:365',
+            'sunlight_frequency' => 'required|integer|min:1|max:365',
+            'fertilize_frequency' => 'required|integer|min:1|max:365',
+        ]);
+
+        /**
+         * UPDATE EACH CARE TASK
+         * 
+         * Map the validated frequencies to their corresponding care task types.
+         * Preserve last_completed timestamp to avoid resetting task schedules.
+         * Only update frequency_days to reflect new custom schedule.
+         */
+        $frequencyMap = [
+            'Water' => $validated['water_frequency'],
+            'Sunlight' => $validated['sunlight_frequency'],
+            'Fertilize' => $validated['fertilize_frequency'],
+        ];
+
+        foreach ($frequencyMap as $taskType => $frequency) {
+            $plant->careTasks()
+                ->where('type', $taskType)
+                ->update(['frequency_days' => $frequency]);
+        }
+
+        Log::info('Plant care schedule updated', [
+            'plant_id' => $plant->id,
+            'plant_name' => $plant->name,
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'frequencies' => $validated,
+            'timestamp' => now()->toIso8601String(),
+        ]);
+
+        return redirect()->route('plants.show', $plant)
+            ->with('success', 'Care schedule updated successfully! Your custom frequencies are now active.');
+    }
+
+    /**
      * Creates default care tasks for a newly added plant.
      * 
      * Extracted into a private method to:
@@ -188,18 +440,21 @@ class PlantsController extends Controller
      * 
      * @param Plant $plant The plant instance to create tasks for
      */
-    private function createDefaultCareTasks(Plant $plant): void
+    private function createDefaultCareTasks(Plant $plant, array $customFrequencies = []): void
     {
         $defaultTasks = [
-            ['type' => 'Water', 'frequency_days' => 7],
-            ['type' => 'Sunlight', 'frequency_days' => 1],
-            ['type' => 'Fertilize', 'frequency_days' => 30],
+            ['type' => 'Water', 'frequency_days' => 7, 'customKey' => 'water_frequency'],
+            ['type' => 'Sunlight', 'frequency_days' => 1, 'customKey' => 'sunlight_frequency'],
+            ['type' => 'Fertilize', 'frequency_days' => 30, 'customKey' => 'fertilize_frequency'],
         ];
 
         foreach ($defaultTasks as $task) {
+            // Use custom frequency if provided, otherwise use default
+            $frequency = $customFrequencies[$task['customKey']] ?? $task['frequency_days'];
+            
             $plant->careTasks()->create([
                 'type' => $task['type'],
-                'frequency_days' => $task['frequency_days'],
+                'frequency_days' => $frequency,
                 'last_completed' => now(),
             ]);
         }

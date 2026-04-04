@@ -39,8 +39,37 @@ Route::middleware('auth')->group(function () {
         Route::get('/add', [PlantsController::class, 'create'])->name('plants.create');
         Route::post('/', [PlantsController::class, 'store'])->name('plants.store');
         Route::get('/{id}', [PlantsController::class, 'show'])->name('plants.show');
+
+        /**
+         * PLANT CRUD OPERATIONS
+         * 
+         * Protected with ownership verification in controller methods.
+         * Users can only edit/update/delete their own plants.
+         */
+        Route::get('/{id}/edit', [PlantsController::class, 'edit'])->name('plants.edit');
+        Route::put('/{id}', [PlantsController::class, 'update'])->name('plants.update');
+        Route::delete('/{id}', [PlantsController::class, 'destroy'])->name('plants.destroy');
+
         Route::post('/{plantId}/log-care/{taskType}', [PlantsController::class, 'logCare'])->name('plants.log-care');
         Route::post('/{id}/identify', [PlantsController::class, 'identifyPlant'])->name('plants.identify');
+
+        /**
+         * PLANT JOURNAL OPERATIONS
+         * 
+         * Add growth photos and notes to document a plant's progress over time.
+         * Protected with ownership verification in controller methods.
+         */
+        Route::post('/{plantId}/journal', [PlantsController::class, 'storeJournal'])->name('plants.journal.store');
+
+        /**
+         * PLANT CARE SCHEDULE CUSTOMIZATION
+         * 
+         * Customize care frequency for each plant based on species-specific requirements.
+         * Users can research and adjust Water, Sunlight, and Fertilize schedules.
+         * Protected with ownership verification in controller methods.
+         */
+        Route::get('/{id}/care-schedule', [PlantsController::class, 'editCareSchedule'])->name('plants.care-schedule.edit');
+        Route::put('/{id}/care-schedule', [PlantsController::class, 'updateCareSchedule'])->name('plants.care-schedule.update');
     });
 
     // Plant care advice
