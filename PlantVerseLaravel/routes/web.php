@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PlantsController;
@@ -8,8 +9,13 @@ use App\Http\Controllers\MilestonesController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\PlantCareController;
 
+/**
+ * Root Route
+ * Conditionally redirects authenticated users to dashboard and unauthenticated users to login.
+ * This provides better UX by automatically routing users to their intended destination.
+ */
 Route::get('/', function () {
-    return redirect()->route('login');
+    return Auth::check() ? redirect()->route('dashboard') : redirect()->route('login');
 })->name('home');
 
 // Guest routes (Authentication)
@@ -48,8 +54,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [ShopController::class, 'index'])->name('shop.index');
         Route::post('/redeem/{rewardId}', [ShopController::class, 'redeem'])->name('shop.redeem');
 
-        // --- ADMIN ROUTES ---
-        Route::get('/{rewardId}/edit', [ShopController::class, 'edit'])->name('shop.edit');
-        Route::put('/{rewardId}', [ShopController::class, 'update'])->name('shop.update');
+        /**
+         * ADMIN ROUTES
+         * 
+         * Protected by admin middleware to ensure only administrators can access shop management.
+         * The middleware checks the user's is_admin database column.
+         */
+        Route::middleware('admin')->group(function () {
+            Route::get('/{rewardId}/edit', [ShopController::class, 'edit'])->name('shop.edit');
+            Route::put('/{rewardId}', [ShopController::class, 'update'])->name('shop.update');
+        });
     });
 });

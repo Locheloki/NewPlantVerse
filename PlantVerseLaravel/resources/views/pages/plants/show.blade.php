@@ -34,7 +34,7 @@
                             <span class="text-xl font-bold text-green-600">{{ $plant->care_consistency }}%</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-3">
-                            <div class="bg-green-500 h-3 rounded-full transition-all" style="width: '{{ $plant->care_consistency }}%'"></div>
+                            <div class="bg-green-500 h-3 rounded-full transition-all" style="--consistency: {{ $plant->care_consistency }}%; width: var(--consistency);"></div>
                         </div>
                     </div>
 

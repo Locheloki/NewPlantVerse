@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    /**
+     * Gemini AI Service Configuration
+     * 
+     * Configured to retrieve the API key from environment variables.
+     * This follows Laravel best practices for managing sensitive credentials.
+     */
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+    ],
+
 ];

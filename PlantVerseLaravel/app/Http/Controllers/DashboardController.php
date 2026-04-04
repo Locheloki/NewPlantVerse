@@ -28,7 +28,7 @@ class DashboardController extends Controller
                     'task' => $task,
                     'nextDueDate' => $nextDueDate,
                     'isOverdue' => $isOverdue,
-                    'daysUntilDue' => now()->diffInDays($nextDueDate, false),
+                    'daysUntilDue' => (int) now()->diffInDays($nextDueDate),
                 ];
             }
         }

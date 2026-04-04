@@ -22,7 +22,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-gray-500 text-sm">Care Consistency</p>
-                    <p class="text-3xl font-bold text-blue-600">{{ ceil($user->on_time_care_percentage) }}%</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ (int) ceil($user->on_time_care_percentage) }}%</p>
                 </div>
                 <i class="fas fa-chart-pie text-5xl text-blue-400 opacity-30"></i>
             </div>
@@ -42,7 +42,10 @@
 
     <!-- Plant Health Overview -->
     <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Plant Health Overview</h3>
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">Plant Health Overview</h3>
+            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded" title="Percentage of care tasks completed on time">On-Time Care Rate</span>
+        </div>
         <div class="space-y-3">
             @forelse($plants as $plant)
             <div class="flex items-center justify-between">
@@ -52,10 +55,12 @@
                     <span class="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs rounded">Neglected</span>
                     @endif
                 </div>
-                <div class="w-32 bg-gray-200 rounded-full h-2">
-                    <div class="bg-green-500 h-2 rounded-full" style="width: '{{ $plant->care_consistency_int }}%'"></div>
+                <div class="flex items-center gap-2">
+                    <div class="w-32 bg-gray-200 rounded-full h-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="--width: {{ $plant->care_consistency_int }}%; width: var(--width);"></div>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-700 w-8">{{ $plant->care_consistency_int }}%</span>
                 </div>
-                <span class="ml-2 text-sm text-gray-600">{{ $plant->care_consistency_int }}%</span>
             </div>
             @empty
             <p class="text-gray-500">No plants yet. <a href="{{ route('plants.create') }}" class="text-green-600 hover:underline">Add one now!</a></p>
@@ -92,7 +97,7 @@
                     @if($item['isOverdue'])
                     <span class="text-red-600 font-semibold">OVERDUE</span>
                     @elseif($item['daysUntilDue'] > 0)
-                    <span class="text-gray-600 text-sm">{{ ceil($item['daysUntilDue']) }} days</span>
+                    <span class="text-gray-600 text-sm">{{ (int) ceil($item['daysUntilDue']) }} days</span>
                     @else
                     <span class="text-green-600 text-sm">Due today</span>
                     @endif
@@ -104,7 +109,7 @@
                         <i class="fas fa-check mr-1"></i>Done
                         </button>
                         @else
-                        <button type="button" disabled class="bg-gray-400 text-white px-4 py-2 rounded-lg cursor-not-allowed" title="Available in {{ ceil($item['daysUntilDue']) }} day(s)">
+                        <button type="button" disabled class="bg-gray-400 text-white px-4 py-2 rounded-lg cursor-not-allowed" title="Available in {{ (int) ceil($item['daysUntilDue']) }} day(s)">
                             <i class="fas fa-clock mr-1"></i>Wait
                         </button>
                         @endif

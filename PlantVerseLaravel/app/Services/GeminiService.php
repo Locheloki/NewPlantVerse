@@ -13,7 +13,21 @@ class GeminiService
 
     public function __construct()
     {
-        $this->apiKey = env('GEMINI_API_KEY', '');
+        /**
+         * REFACTORED: Use config() with env() fallback
+         * 
+         * This ensures the API key is always set (even if to an empty string).
+         * Priority:
+         * 1. config('services.gemini.key') - if defined in config/services.php
+         * 2. env('GEMINI_API_KEY') - fallback to environment variable
+         * 3. empty string '' - final fallback to prevent type errors
+         * 
+         * This approach:
+         * - Respects cached configuration (better performance)
+         * - Handles missing config gracefully
+         * - Never assigns null to a typed string property
+         */
+        $this->apiKey = config('services.gemini.key') ?? env('GEMINI_API_KEY') ?? '';
         $this->client = new Client();
     }
 

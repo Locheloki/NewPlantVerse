@@ -31,8 +31,11 @@
                     <span class="text-sm font-medium text-gray-700">Progress</span>
                     <span class="text-sm font-bold text-green-600">{{ $milestone->progress }}/{{ $milestone->target }}</span>
                 </div>
+                @php
+                $progressPercentage = (int) min(($milestone->progress / $milestone->target) * 100, 100);
+                @endphp
                 <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all" style="width: '{{ min(($milestone->progress / $milestone->target) * 100, 100) }}%'"></div>
+                    <div class="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all" style="--progress-width: {{ $progressPercentage }}%; width: var(--progress-width);"></div>
                 </div>
             </div>
         </div>

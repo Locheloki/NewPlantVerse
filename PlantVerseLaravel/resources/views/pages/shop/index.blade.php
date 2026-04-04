@@ -7,15 +7,22 @@
     @if(!$isEligible)
     <div class="p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg">
         <i class="fas fa-exclamation-triangle mr-2"></i>
-        <strong>Minimum Balance Required:</strong> You need at least 100 PVT to redeem rewards. Current balance: {{ $user->pvt_balance }} PVT
+        <strong>Minimum Balance Required:</strong> You need at least <span class="font-bold">{{ $rewards->min('pvt_cost') }} PVT</span> to redeem rewards. Current balance: <span class="font-bold">{{ $user->pvt_balance }} PVT</span>
     </div>
     @endif
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         @forelse($rewards as $reward)
         <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-            <div class="h-40 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+            <div class="h-40 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center relative">
                 <span class="text-6xl">{{ $reward->icon ?? '🎁' }}</span>
+                
+                {{-- REFACTORED: Show "Owned" badge for purchased rewards --}}
+                @if(in_array($reward->id, $ownedRewardIds))
+                <div class="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                    <i class="fas fa-check-circle"></i> Owned
+                </div>
+                @endif
             </div>
 
             <div class="p-6">
@@ -29,17 +36,25 @@
                     </p>
                 </div>
 
-                @if($user->pvt_balance >= $reward->pvt_cost)
-                <form action="{{ route('shop.redeem', $reward->id) }}" method="POST">
-                    @csrf
-                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium">
-                        <i class="fas fa-shopping-cart mr-2"></i>Redeem
+                {{-- REFACTORED: Check ownership status to determine button state --}}
+                @if(in_array($reward->id, $ownedRewardIds))
+                    {{-- User already owns this reward --}}
+                    <button disabled class="w-full bg-gray-300 text-gray-600 px-4 py-2 rounded-lg font-medium cursor-not-allowed flex items-center justify-center gap-2">
+                        <i class="fas fa-check-circle"></i>Already Owned
                     </button>
-                </form>
+                @elseif($user->pvt_balance >= $reward->pvt_cost)
+                    {{-- User can afford this reward --}}
+                    <form action="{{ route('shop.redeem', $reward->id) }}" method="POST">
+                        @csrf
+                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition">
+                            <i class="fas fa-shopping-cart mr-2"></i>Redeem
+                        </button>
+                    </form>
                 @else
-                <button disabled class="w-full bg-gray-400 text-white px-4 py-2 rounded-lg font-medium cursor-not-allowed">
-                    <i class="fas fa-lock mr-2"></i>Not Enough PVT
-                </button>
+                    {{-- User cannot afford this reward --}}
+                    <button disabled class="w-full bg-gray-400 text-white px-4 py-2 rounded-lg font-medium cursor-not-allowed">
+                        <i class="fas fa-lock mr-2"></i>Not Enough PVT
+                    </button>
                 @endif
 
                 @if(auth()->user()->isAdmin())

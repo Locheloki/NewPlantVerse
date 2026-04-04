@@ -11,10 +11,18 @@ return new class extends Migration {
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('password'); // Added this line
-            $table->rememberToken();    // Added this line (recommended for Auth)
+            $table->string('password');
+            $table->rememberToken();
             $table->integer('pvt_balance')->default(0);
             $table->integer('on_time_care_percentage')->default(0);
+            /**
+             * is_admin column
+             * 
+             * REFACTORED: Added boolean column to replace hardcoded email-based admin checks.
+             * Allows flexible admin user management without code changes.
+             * Default false ensures users are not admins unless explicitly set.
+             */
+            $table->boolean('is_admin')->default(false);
             $table->timestamps();
         });
     }

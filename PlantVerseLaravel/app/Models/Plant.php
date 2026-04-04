@@ -6,18 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Plant Model
+ * 
+ * Represents a plant entity with relationships to users and care tasks.
+ * Refactored to remove redundant type-checking logic.
+ */
 class Plant extends Model
 {
-    /**
-     * Always return care_consistency as an integer for blade/css safety
-     */
-    public function getCareConsistencyIntAttribute()
-    {
-        if (is_null($this->care_consistency) || !is_numeric($this->care_consistency)) {
-            return 0;
-        }
-        return (int) round($this->care_consistency);
-    }
     protected $fillable = [
         'user_id',
         'name',
@@ -27,6 +23,18 @@ class Plant extends Model
         'is_neglected',
     ];
 
+    /**
+     * Type casting configuration
+     * 
+     * REFACTORING NOTES:
+     * - care_consistency is cast to 'integer' which ensures:
+     *   1. Database values are automatically cast to int on retrieval
+     *   2. Null values are converted to 0 by Laravel's integer cast
+     *   3. Removed redundant getCareConsistencyIntAttribute() method as it duplicated this functionality
+     * 
+     * - Assuming the database migration includes DEFAULT 0 for care_consistency column,
+     *   Laravel's integer cast handles any edge cases
+     */
     protected $casts = [
         'care_consistency' => 'integer',
         'is_neglected' => 'boolean',

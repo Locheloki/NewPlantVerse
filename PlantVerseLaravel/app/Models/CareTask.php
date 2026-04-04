@@ -30,12 +30,13 @@ class CareTask extends Model
 
     /**
      * Get days remaining until task can be completed
+     * Returns an integer to avoid decimal display issues
      */
-    public function daysUntilReady()
+    public function daysUntilReady(): int
     {
         $daysSinceCompleted = $this->last_completed->diffInDays(now());
         $remaining = $this->frequency_days - $daysSinceCompleted;
-        return max(0, $remaining);
+        return (int) max(0, $remaining);
     }
 
     public function plant(): BelongsTo
