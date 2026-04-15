@@ -18,7 +18,9 @@ return new class extends Migration
              * Allows flexible admin user management without code changes.
              * Default false ensures users are not admins unless explicitly set.
              */
-            $table->boolean('is_admin')->default(false)->after('on_time_care_percentage');
+            if (!Schema::hasColumn('users', 'is_admin')) {
+                $table->boolean('is_admin')->default(false)->after('on_time_care_percentage');
+            }
         });
     }
 

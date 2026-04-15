@@ -40,27 +40,43 @@
         </div>
     </div>
 
-    <!-- Plant Health Overview -->
+    <!-- Plant Health Overview with Info -->
     <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-800">Plant Health Overview</h3>
-            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded" title="Percentage of care tasks completed on time">On-Time Care Rate</span>
+        <div class="flex items-start justify-between mb-6 gap-4">
+            <div class="flex-1">
+                <h3 class="text-lg font-semibold text-gray-800">Plant Health Overview</h3>
+                <p class="text-sm text-gray-600 mt-1">Care consistency based on task completion</p>
+            </div>
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-3 rounded text-sm text-blue-700 min-w-max">
+                <p class="text-xs font-semibold text-blue-900 mb-1">💡 Approximate Health</p>
+                <p class="text-xs">Based on on-time care task completion</p>
+            </div>
         </div>
-        <div class="space-y-3">
+        <div class="space-y-4">
             @forelse($plants as $plant)
-            <div class="flex items-center justify-between">
-                <div class="flex items-center flex-1">
-                    <span class="font-medium text-gray-700">{{ $plant->name }}</span>
-                    @if($plant->is_neglected)
-                    <span class="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs rounded">Neglected</span>
-                    @endif
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-32 bg-gray-200 rounded-full h-2">
-                        <div class="bg-green-500 h-2 rounded-full" style="--width: {{ $plant->care_consistency_int }}%; width: var(--width);"></div>
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-medium text-gray-700 truncate">{{ $plant->name }}</span>
+                        @if($plant->is_neglected)
+                        <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded whitespace-nowrap">⚠️ Neglected</span>
+                        @endif
                     </div>
-                    <span class="text-sm font-semibold text-gray-700 w-8">{{ $plant->care_consistency_int }}%</span>
+                    <div class="w-full bg-gray-300 rounded-full h-2.5 overflow-hidden">
+                        @php
+                        $consistency = (int) $plant->care_consistency;
+                        if ($consistency >= 85) {
+                        $bgColor = '#10b981';
+                        } elseif ($consistency >= 60) {
+                        $bgColor = '#f59e0b';
+                        } else {
+                        $bgColor = '#ef4444';
+                        }
+                        @endphp
+                        <div class="h-2.5 rounded-full transition-all duration-500" style="width: {{ $consistency }}%; background-color: {{ $bgColor }};"></div>
+                    </div>
                 </div>
+                <span class="text-sm font-semibold text-gray-700 whitespace-nowrap min-w-fit">{{ $consistency }}%</span>
             </div>
             @empty
             <p class="text-gray-500">No plants yet. <a href="{{ route('plants.create') }}" class="text-green-600 hover:underline">Add one now!</a></p>

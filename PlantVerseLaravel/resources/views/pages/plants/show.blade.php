@@ -4,17 +4,25 @@
 
 @section('main-content')
 <div class="space-y-6">
-    <!-- Header with Back Button and Delete -->
+    <!-- Header with Back Button and Actions -->
     <div class="flex items-center justify-between">
         <a href="{{ route('plants.index') }}" class="inline-flex items-center text-green-600 hover:text-green-700">
             <i class="fas fa-arrow-left mr-2"></i>Back to Plants
         </a>
-        <button
-            onclick="openDeleteModal()"
-            class="text-red-600 hover:text-red-700 inline-flex items-center transition"
-            title="Delete this plant">
-            <i class="fas fa-trash-alt mr-1"></i>Delete
-        </button>
+        <div class="flex gap-3">
+            <a
+                href="{{ route('plants.edit', $plant) }}"
+                class="text-blue-600 hover:text-blue-700 inline-flex items-center transition"
+                title="Edit plant information and photo">
+                <i class="fas fa-edit mr-1"></i>Edit
+            </a>
+            <button
+                onclick="openDeleteModal()"
+                class="text-red-600 hover:text-red-700 inline-flex items-center transition"
+                title="Delete this plant">
+                <i class="fas fa-trash-alt mr-1"></i>Delete
+            </button>
+        </div>
     </div>
 
     <!-- Delete Confirmation Modal -->

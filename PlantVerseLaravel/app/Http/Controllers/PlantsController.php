@@ -80,8 +80,8 @@ class PlantsController extends Controller
     /**
      * Update plant information
      * 
-     * Allows users to update plant name, species, and care recommendations.
-     * Photo update handled separately to maintain image integrity.
+     * Allows users to update plant name, species, care recommendations, and photo.
+     * Photo is optional - if not provided, existing photo is kept.
      * Authorization: User must own the plant
      */
     public function update(Request $request, $id)
@@ -100,11 +100,21 @@ class PlantsController extends Controller
             'name' => 'required|string|max:255',
             'species' => 'required|string|max:255',
             'care_recommendations' => 'nullable|string|max:1000',
+            'photo' => 'nullable|image|max:5120',
         ]);
+
+        $photoUrl = $plant->photo_url;
+
+        // Handle photo upload
+        if ($request->hasFile('photo')) {
+            $photoUrl = $request->file('photo')->store('plants', 'public');
+        }
 
         $plant->update([
             'name' => $validated['name'],
             'species' => $validated['species'],
+            'care_recommendations' => $validated['care_recommendations'] ?? $plant->care_recommendations,
+            'photo_url' => $photoUrl,
         ]);
 
         return redirect()->route('plants.show', $plant)->with('success', 'Plant updated successfully!');
@@ -210,12 +220,13 @@ class PlantsController extends Controller
          * - Current time: 2026-04-07 11:00 PM
          * - Result: CAN LOG NOW (within grace period)
          */
-        $graceWindowStart = $task->last_completed->addDays($task->frequency_days)->subHours(12);
+        // Calculate when task is due
+        $dueDate = $task->last_completed->addDays($task->frequency_days);
+        $gracePeriodStart = $dueDate->subHours(12);
 
-        if (now()->lessThan($graceWindowStart)) {
-            $hoursRemaining = $graceWindowStart->diffInHours(now());
-            $daysRemaining = (int) ceil($hoursRemaining / 24);
-
+        // Allow if we're in the grace period or past due
+        if (now()->lessThan($gracePeriodStart)) {
+            $daysRemaining = (int) ceil(now()->diffInDays($gracePeriodStart));
             return redirect()->back()->with('error', "You can do this in $daysRemaining day(s). Come back later!");
         }
 
@@ -451,11 +462,11 @@ class PlantsController extends Controller
         foreach ($defaultTasks as $task) {
             // Use custom frequency if provided, otherwise use default
             $frequency = $customFrequencies[$task['customKey']] ?? $task['frequency_days'];
-            
+
             $plant->careTasks()->create([
                 'type' => $task['type'],
                 'frequency_days' => $frequency,
-                'last_completed' => now(),
+                'last_completed' => now()->subDays($frequency),
             ]);
         }
     }
