@@ -40,6 +40,43 @@
         </div>
     </div>
 
+    <!-- Streak Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Daily Streak -->
+        <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg shadow p-6 border-l-4 border-orange-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-600 text-sm font-semibold">🔥 Daily Streak</p>
+                    <p class="text-3xl font-bold text-orange-600">{{ $user->daily_streak }}</p>
+                    <p class="text-xs text-gray-600 mt-2">consecutive days of care</p>
+                </div>
+                <div class="text-6xl opacity-20">🔥</div>
+            </div>
+        </div>
+
+        <!-- Longest Plant Streak -->
+        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-600 text-sm font-semibold">🌿 Best Plant Streak</p>
+                    @php
+                    $bestStreak = $plants->max('care_streak') ?? 0;
+                    $bestStreakPlant = $plants->firstWhere('care_streak', $bestStreak);
+                    @endphp
+                    <p class="text-3xl font-bold text-green-600">{{ $bestStreak }}</p>
+                    <p class="text-xs text-gray-600 mt-2">
+                        @if($bestStreakPlant)
+                        {{ $bestStreakPlant->name }}
+                        @else
+                        Start caring for plants!
+                        @endif
+                    </p>
+                </div>
+                <div class="text-6xl opacity-20">🌿</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Plant Health Overview with Info -->
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-start justify-between mb-6 gap-4">
@@ -58,6 +95,9 @@
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-1">
                         <span class="font-medium text-gray-700 truncate">{{ $plant->name }}</span>
+                        @if($plant->care_streak > 0)
+                        <span class="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded whitespace-nowrap font-semibold">🔥 {{ $plant->care_streak }}</span>
+                        @endif
                         @if($plant->is_neglected)
                         <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded whitespace-nowrap">⚠️ Neglected</span>
                         @endif
@@ -73,7 +113,7 @@
                         $bgColor = '#ef4444';
                         }
                         @endphp
-                        <div class="h-2.5 rounded-full transition-all duration-500" style="width: {{ $consistency }}%; background-color: {{ $bgColor }};"></div>
+                        <div class="h-2.5 rounded-full transition-all duration-500" style="--consistency: {{ $consistency }}%; --bg-color: {{ $bgColor }}; width: var(--consistency); background-color: var(--bg-color);"></div>
                     </div>
                 </div>
                 <span class="text-sm font-semibold text-gray-700 whitespace-nowrap min-w-fit">{{ $consistency }}%</span>
@@ -137,4 +177,4 @@
         </div>
     </div>
 </div>
-@endsection
+@endsection nm

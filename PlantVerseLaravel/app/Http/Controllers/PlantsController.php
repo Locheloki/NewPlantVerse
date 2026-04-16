@@ -237,14 +237,50 @@ class PlantsController extends Controller
         $user = $request->user();
         $user->increment('pvt_balance', self::PVT_CARE_REWARD);
 
-        return redirect()->back()->with('success', "{$taskType} logged successfully! +" . self::PVT_CARE_REWARD . " PVT");
+    // === STREAK TRACKING ===
+    // Update plant's care streak
+    $plant->last_care_completed_at = now();
+    
+    // If this is the first care after neglect was cleared, start a new streak
+    if ($plant->is_neglected) {
+        $plant->is_neglected = false;
+        $plant->care_streak = 1;
+        $plant->streak_started_at = now();
+    } else {
+        // Continue existing streak or start new one if none exists
+        if (is_null($plant->streak_started_at)) {
+            $plant->streak_started_at = now();
+            $plant->care_streak = 1;
+        } else {
+            $plant->care_streak += 1;
+        }
+    }
+    $plant->save();
+
+    // Update user's daily streak
+    $today = now()->toDateString();
+    $lastCareDate = $user->last_care_date?->toDateString();
+    
+    if ($lastCareDate === $today) {
+        // Already cared for a plant today, don't increment streak again
+        $streakMessage = " | 🔥 {$user->daily_streak}-day streak!";
+    } else {
+        // New day of care
+        if ($lastCareDate === now()->subDay()->toDateString()) {
+            // Consecutive day - increment streak
+            $user->daily_streak += 1;
+        } else {
+            // Streak broken - reset to 1
+            $user->daily_streak = 1;
+            $user->daily_streak_start_date = now()->toDateOnly();
+        }
+        $user->last_care_date = now()->toDateOnly();
+        $user->save();
+        
+        $streakMessage = " | 🔥 {$user->daily_streak}-day streak!";
     }
 
-    public function identifyPlant(Request $request)
-    {
-        $request->validate([
-            'photo' => 'required|image|max:5120',
-        ]);
+    return redirect()->back()->with('success', "{$taskType} logged successfully! +" . self::PVT_CARE_REWARD . " PVT{$streakMessage}");
 
         try {
             $file = $request->file('photo');

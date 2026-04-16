@@ -21,6 +21,9 @@ class Plant extends Model
         'photo_url',
         'care_consistency',
         'is_neglected',
+        'care_streak',
+        'streak_started_at',
+        'last_care_completed_at',
     ];
 
     /**
@@ -34,10 +37,15 @@ class Plant extends Model
      * 
      * - Assuming the database migration includes DEFAULT 0 for care_consistency column,
      *   Laravel's integer cast handles any edge cases
+     * 
+     * - Streak tracking fields for gamification
      */
     protected $casts = [
         'care_consistency' => 'integer',
         'is_neglected' => 'boolean',
+        'care_streak' => 'integer',
+        'streak_started_at' => 'datetime',
+        'last_care_completed_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

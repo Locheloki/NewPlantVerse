@@ -24,6 +24,9 @@ class User extends Authenticatable
         'on_time_care_percentage',
         'is_on_vacation',
         'vacation_ends_at',
+        'daily_streak',
+        'daily_streak_start_date',
+        'last_care_date',
     ];
 
     protected $hidden = [
@@ -38,6 +41,8 @@ class User extends Authenticatable
             'is_admin' => 'boolean',
             'is_on_vacation' => 'boolean',
             'vacation_ends_at' => 'datetime',
+            'daily_streak_start_date' => 'date',
+            'last_care_date' => 'date',
         ];
     }
 

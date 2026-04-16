@@ -118,7 +118,11 @@ class CheckPlantNeglect extends Command
             if ($daysOverdue > self::NEGLECT_THRESHOLD_DAYS) {
                 // Mark plant as neglected only if not already marked
                 if (!$plant->is_neglected) {
-                    $plant->update(['is_neglected' => true]);
+                    $plant->update([
+                        'is_neglected' => true,
+                        'care_streak' => 0,  // Reset care streak when neglected
+                        'streak_started_at' => null,
+                    ]);
                     $neglectedPlantsCount++;
 
                     // Deduct PVT penalty from user (ensure balance doesn't go below 0)
