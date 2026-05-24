@@ -8,6 +8,7 @@ use App\Http\Controllers\PlantsController;
 use App\Http\Controllers\MilestonesController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\PlantCareController;
+use App\Http\Controllers\AdminController;
 
 /**
  * Root Route
@@ -93,5 +94,27 @@ Route::middleware('auth')->group(function () {
             Route::get('/{rewardId}/edit', [ShopController::class, 'edit'])->name('shop.edit');
             Route::put('/{rewardId}', [ShopController::class, 'update'])->name('shop.update');
         });
+    });
+
+    /**
+     * ADMIN CONTROL PANEL
+     * 
+     * Complete admin dashboard for testing and managing the streak system.
+     * Includes streak manipulation, command execution, and user management.
+     * Protected by admin middleware.
+     */
+    Route::middleware('admin')->group(function () {
+        Route::get('/admin', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+
+        // Feature testing routes
+        Route::post('/admin/test/toggle-vacation/{userId}', [AdminController::class, 'toggleVacation'])->name('admin.test.toggle-vacation');
+        Route::post('/admin/test/add-pvt/{userId}', [AdminController::class, 'addPVT'])->name('admin.test.add-pvt');
+        Route::post('/admin/test/plant/{plantId}/missed-care', [AdminController::class, 'simulateMissedCare'])->name('admin.test.plant.missed-care');
+        Route::post('/admin/test/plant/{plantId}/log-care', [AdminController::class, 'simulateCareLog'])->name('admin.test.plant.log-care');
+        Route::post('/admin/test/plant/{plantId}/recalculate-consistency', [AdminController::class, 'recalculatePlantConsistency'])->name('admin.test.plant.recalculate-consistency');
+
+        // Command execution routes
+        Route::post('/admin/command/plant-neglect', [AdminController::class, 'runNeglectCommand'])->name('admin.command.plant-neglect');
+        Route::post('/admin/command/care-consistency', [AdminController::class, 'runCareConsistencyCommand'])->name('admin.command.care-consistency');
     });
 });

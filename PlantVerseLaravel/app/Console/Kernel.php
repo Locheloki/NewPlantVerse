@@ -4,6 +4,7 @@ namespace App\Console;
 
 use App\Console\Commands\CheckPlantNeglect;
 use App\Console\Commands\SendCareReminders;
+use App\Console\Commands\UpdateCareConsistency;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -45,10 +46,10 @@ class Kernel extends ConsoleKernel
          * Manual execution supported for testing/emergency use
          */
         $schedule->command(CheckPlantNeglect::class)
-                 ->daily()
-                 ->at('02:00')
-                 ->name('check-plant-neglect')
-                 ->description('Check and penalize neglected plants');
+            ->daily()
+            ->at('02:00')
+            ->name('check-plant-neglect')
+            ->description('Check and penalize neglected plants');
 
         /**
          * SendCareReminders Command
@@ -66,16 +67,40 @@ class Kernel extends ConsoleKernel
          * Manual execution supported for testing
          */
         $schedule->command(SendCareReminders::class)
-                 ->daily()
-                 ->at('09:00')
-                 ->name('send-care-reminders')
-                 ->description('Send daily care reminders to users');
+            ->daily()
+            ->at('09:00')
+            ->name('send-care-reminders')
+            ->description('Send daily care reminders to users');
+
+        /**
+         * UpdateCareConsistency Command
+         * 
+         * Runs daily at 3:00 AM to:
+         * - Recalculate care consistency for all plants
+         * - Analyze task completion patterns
+         * - On-time tasks: +2 points
+         * - Overdue tasks: -3 points
+         * - Never completed: -5 points per task
+         * - Range: 0-100%
+         * 
+         * Frequency: Daily (runs at 3:00 AM server time)
+         * Impact: Affects plant care_consistency score
+         * 
+         * Command: php artisan update:care-consistency
+         * Manual execution supported for testing
+         */
+        $schedule->command(UpdateCareConsistency::class)
+            ->daily()
+            ->at('03:00')
+            ->name('update-care-consistency')
+            ->description('Recalculate plant care consistency scores');
 
         /**
          * Optional: Debug/Development Only
          * Uncomment below to test scheduling every minute (development only!)
          * $schedule->command(CheckPlantNeglect::class)->everyMinute();
          * $schedule->command(SendCareReminders::class)->everyMinute();
+         * $schedule->command(UpdateCareConsistency::class)->everyMinute();
          */
     }
 
@@ -86,7 +111,7 @@ class Kernel extends ConsoleKernel
      */
     protected function commands()
     {
-        $this->load(__DIR__.'/Commands');
+        $this->load(__DIR__ . '/Commands');
 
         require base_path('routes/console.php');
     }

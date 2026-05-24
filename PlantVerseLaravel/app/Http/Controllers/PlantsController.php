@@ -22,6 +22,7 @@ class PlantsController extends Controller
      * Extracted as a class constant to enable easy adjustments and avoid magic numbers.
      */
     private const PVT_CARE_REWARD = 10;
+    private const CARE_CONSISTENCY_LOG_REWARD = 10;
 
     protected GeminiService $geminiService;
 
@@ -34,7 +35,10 @@ class PlantsController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
-        $plants = Plant::where('user_id', $user->id)->get();
+
+        $plants = Plant::where('user_id', $user->id)
+            ->orderBy('name')
+            ->get();
 
         return view('pages.plants.index', [
             'plants' => $plants,
@@ -48,6 +52,10 @@ class PlantsController extends Controller
 
         /** @var \App\Models\User $user */
         $user = $request->user();
+
+        if ($plant->user_id !== $user->id) {
+            return abort(403, 'Unauthorized');
+        }
 
         return view('pages.plants.show', [
             'plant' => $plant,
@@ -199,6 +207,13 @@ class PlantsController extends Controller
     public function logCare(Request $request, $plantId, $taskType)
     {
         $plant = Plant::findOrFail($plantId);
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        if ($plant->user_id !== $user->id) {
+            return abort(403, 'Unauthorized');
+        }
+
         $task = $plant->careTasks()->where('type', $taskType)->firstOrFail();
 
         /**
@@ -221,8 +236,8 @@ class PlantsController extends Controller
          * - Result: CAN LOG NOW (within grace period)
          */
         // Calculate when task is due
-        $dueDate = $task->last_completed->addDays($task->frequency_days);
-        $gracePeriodStart = $dueDate->subHours(12);
+        $dueDate = $task->last_completed->copy()->addDays($task->frequency_days);
+        $gracePeriodStart = $dueDate->copy()->subHours(12);
 
         // Allow if we're in the grace period or past due
         if (now()->lessThan($gracePeriodStart)) {
@@ -231,23 +246,22 @@ class PlantsController extends Controller
         }
 
         $task->update(['last_completed' => now()]);
-
-        // Increase PVT balance using class constant
-        /** @var \App\Models\User $user */
-        $user = $request->user();
         $user->increment('pvt_balance', self::PVT_CARE_REWARD);
 
-        // === STREAK TRACKING ===
-        // Update plant's care streak
-        $plant->last_care_completed_at = now();
+        // === CARE CONSISTENCY TRACKING ===
+        // Every valid care log should visibly recover consistency. The daily
+        // recalculation command still handles decay from missed care.
+        $consistencyReward = self::CARE_CONSISTENCY_LOG_REWARD;
+        $plant->care_consistency = min(100, $plant->care_consistency + $consistencyReward);
 
-        // If this is the first care after neglect was cleared, start a new streak
+        // === STREAK TRACKING ===
+        // Update plant's care streak.
+        $plant->last_care_completed_at = now();
         if ($plant->is_neglected) {
             $plant->is_neglected = false;
             $plant->care_streak = 1;
             $plant->streak_started_at = now();
         } else {
-            // Continue existing streak or start new one if none exists
             if (is_null($plant->streak_started_at)) {
                 $plant->streak_started_at = now();
                 $plant->care_streak = 1;
@@ -257,35 +271,51 @@ class PlantsController extends Controller
         }
         $plant->save();
 
-        // Update user's daily streak
+        // Update user's daily streak.
         $today = now()->toDateString();
         $lastCareDate = $user->last_care_date?->toDateString();
 
         if ($lastCareDate === $today) {
-            // Already cared for a plant today, don't increment streak again
-            $streakMessage = " | 🔥 {$user->daily_streak}-day streak!";
+            $streakMessage = " | {$user->daily_streak}-day streak!";
         } else {
-            // New day of care
             if ($lastCareDate === now()->subDay()->toDateString()) {
-                // Consecutive day - increment streak
                 $user->daily_streak += 1;
             } else {
-                // Streak broken - reset to 1
                 $user->daily_streak = 1;
-                $user->daily_streak_start_date = now()->toDateOnly();
+                $user->daily_streak_start_date = $today;
             }
-            $user->last_care_date = now()->toDateOnly();
+
+            $user->last_care_date = $today;
             $user->save();
 
-            $streakMessage = " | 🔥 {$user->daily_streak}-day streak!";
+            $streakMessage = " | {$user->daily_streak}-day streak!";
         }
 
-        return redirect()->back()->with('success', "{$taskType} logged successfully! +" . self::PVT_CARE_REWARD . " PVT{$streakMessage}");
+        return redirect()->back()->with('success', "{$taskType} logged successfully! +" . self::PVT_CARE_REWARD . " PVT, +{$consistencyReward}% care consistency{$streakMessage}");
+    }
+
+    public function identifyPlant(Request $request, $id)
+    {
+        $plant = Plant::findOrFail($id);
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        if ($plant->user_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Unauthorized',
+            ], 403);
+        }
+
+        $request->validate([
+            'photo' => 'required|image|max:5120',
+        ]);
+
+        $file = $request->file('photo');
 
         try {
-            $file = $request->file('photo');
-            $imageData = base64_encode(file_get_contents($file));
-            $dataUri = 'data:image/jpeg;base64,' . $imageData;
+            $imageData = base64_encode(file_get_contents($file->getRealPath()));
+            $dataUri = 'data:' . $file->getMimeType() . ';base64,' . $imageData;
 
             $result = $this->geminiService->identifyPlant($dataUri);
 

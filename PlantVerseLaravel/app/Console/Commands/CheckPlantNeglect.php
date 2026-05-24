@@ -111,16 +111,25 @@ class CheckPlantNeglect extends Command
                 continue;
             }
 
-            // Calculate days overdue
-            $daysOverdue = now()->diffInDays($task->last_completed->addDays($task->frequency_days));
+            $dueDate = $task->last_completed->copy()->addDays($task->frequency_days);
+
+            if (now()->lessThanOrEqualTo($dueDate)) {
+                continue;
+            }
+
+            $daysOverdue = (int) floor($dueDate->diffInDays(now()));
 
             // Check if task is more than 3 days overdue
             if ($daysOverdue > self::NEGLECT_THRESHOLD_DAYS) {
                 // Mark plant as neglected only if not already marked
                 if (!$plant->is_neglected) {
+                    // Decrease care consistency when marked neglected (-5 consistency, minimum 0)
+                    $newConsistency = max(0, $plant->care_consistency - 5);
+
                     $plant->update([
                         'is_neglected' => true,
-                        'care_streak' => 0,  // Reset care streak when neglected
+                        'care_consistency' => $newConsistency,
+                        'care_streak' => 0,
                         'streak_started_at' => null,
                     ]);
                     $neglectedPlantsCount++;
@@ -142,6 +151,7 @@ class CheckPlantNeglect extends Command
                         'task_type' => $task->type,
                         'pvt_deducted' => self::NEGLECT_PENALTY_PVT,
                         'new_pvt_balance' => $newBalance,
+                        'care_consistency_decreased_to' => $newConsistency,
                         'timestamp' => now()->toIso8601String(),
                     ]);
                 }
