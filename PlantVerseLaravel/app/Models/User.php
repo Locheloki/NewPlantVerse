@@ -67,6 +67,27 @@ class User extends Authenticatable
     }
 
     /**
+     * Get all orders placed by this user
+     * 
+     * Tracks delivery information for redeemed rewards.
+     * Each order contains address and status information.
+     */
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Get daily activity records for this user
+     * 
+     * Tracks login/attendance and minimum activity for streak calculation.
+     */
+    public function dailyActivity()
+    {
+        return $this->hasMany(UserDailyActivity::class);
+    }
+
+    /**
      * Check if the user is an admin
      * 
      * REFACTORED: Removed hardcoded email check (admin@admin.com).

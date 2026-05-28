@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="flex min-h-screen bg-gray-50">
-    <aside class="hidden md:flex md:w-64 md:flex-col md:bg-white md:shadow-lg">
+    <aside class="hidden md:flex md:w-64 md:flex-col md:bg-white md:shadow-lg md:fixed md:inset-y-0 md:left-0 md:z-40 md:overflow-y-auto">
         <div class="border-b border-gray-200 p-6">
             <h1 class="text-2xl font-bold text-green-600">PlantVerse</h1>
         </div>
@@ -16,13 +16,21 @@
                 <i class="fas fa-leaf mr-3"></i>
                 <span>My Plants</span>
             </a>
+            <a href="{{ route('calendar.index') }}" class="flex items-center rounded-lg px-4 py-3 {{ request()->routeIs('calendar.*') ? 'bg-green-50 text-green-600' : 'text-gray-700 hover:bg-gray-50' }}">
+                <i class="fas fa-calendar-alt mr-3"></i>
+                <span>Calendar</span>
+            </a>
             <a href="{{ route('milestones.index') }}" class="flex items-center rounded-lg px-4 py-3 {{ request()->routeIs('milestones.*') ? 'bg-green-50 text-green-600' : 'text-gray-700 hover:bg-gray-50' }}">
                 <i class="fas fa-trophy mr-3"></i>
                 <span>Milestones</span>
             </a>
-            <a href="{{ route('shop.index') }}" class="flex items-center rounded-lg px-4 py-3 {{ request()->routeIs('shop.*') ? 'bg-green-50 text-green-600' : 'text-gray-700 hover:bg-gray-50' }}">
+            <a href="{{ route('shop.index') }}" class="flex items-center rounded-lg px-4 py-3 {{ request()->routeIs('shop.*', 'checkout.*') ? 'bg-green-50 text-green-600' : 'text-gray-700 hover:bg-gray-50' }}">
                 <i class="fas fa-store mr-3"></i>
                 <span>Shop</span>
+            </a>
+            <a href="{{ route('orders.index') }}" class="flex items-center rounded-lg px-4 py-3 {{ request()->routeIs('orders.*') ? 'bg-green-50 text-green-600' : 'text-gray-700 hover:bg-gray-50' }}">
+                <i class="fas fa-box mr-3"></i>
+                <span>Orders</span>
             </a>
 
             @if(auth()->check() && auth()->user()->isAdmin())
@@ -51,7 +59,7 @@
         </div>
     </aside>
 
-    <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
+    <div class="flex min-w-0 flex-1 flex-col overflow-hidden md:ml-64">
         <header class="sticky top-0 z-20 bg-white px-4 py-3 shadow-sm sm:px-6 sm:py-4">
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
@@ -94,7 +102,7 @@
         </main>
     </div>
 
-    <nav class="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t border-gray-200 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.06)] md:hidden">
+    <nav class="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-6 border-t border-gray-200 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.06)] md:hidden">
         <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-1 px-2 py-2 text-xs {{ request()->routeIs('dashboard') ? 'text-green-600' : 'text-gray-600' }}">
             <i class="fas fa-chart-line text-base"></i>
             <span>Home</span>
@@ -106,6 +114,10 @@
         <a href="{{ route('milestones.index') }}" class="flex flex-col items-center gap-1 px-2 py-2 text-xs {{ request()->routeIs('milestones.*') ? 'text-green-600' : 'text-gray-600' }}">
             <i class="fas fa-trophy text-base"></i>
             <span>Goals</span>
+        </a>
+        <a href="{{ route('calendar.index') }}" class="flex flex-col items-center gap-1 px-2 py-2 text-xs {{ request()->routeIs('calendar.*') ? 'text-green-600' : 'text-gray-600' }}">
+            <i class="fas fa-calendar-alt text-base"></i>
+            <span>Calendar</span>
         </a>
         <a href="{{ route('shop.index') }}" class="flex flex-col items-center gap-1 px-2 py-2 text-xs {{ request()->routeIs('shop.*') ? 'text-green-600' : 'text-gray-600' }}">
             <i class="fas fa-store text-base"></i>

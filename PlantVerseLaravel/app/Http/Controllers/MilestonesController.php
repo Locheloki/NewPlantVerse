@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Milestone;
+use App\Models\UserDailyActivity;
 use Illuminate\Http\Request;
 
 class MilestonesController extends Controller
@@ -11,6 +12,8 @@ class MilestonesController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
+
+        UserDailyActivity::recordLogin($user->id);
 
         $milestones = Milestone::where('user_id', $user->id)->get();
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Reward;
+use App\Models\UserDailyActivity;
 use Illuminate\Http\Request;
 
 /**
@@ -19,6 +20,8 @@ class ShopController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
+
+        UserDailyActivity::recordLogin($user->id);
 
         $rewards = Reward::all();
 

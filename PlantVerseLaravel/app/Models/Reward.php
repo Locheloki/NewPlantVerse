@@ -38,4 +38,14 @@ class Reward extends Model
     {
         return $this->belongsToMany(User::class, 'reward_user');
     }
+
+    /**
+     * Get all orders for this reward
+     * 
+     * Tracks delivery orders placed for this specific reward.
+     */
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }

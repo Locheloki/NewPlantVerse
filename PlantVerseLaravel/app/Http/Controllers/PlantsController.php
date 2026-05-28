@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Plant;
+use App\Models\CareTask;
+use App\Models\UserDailyActivity;
 use App\Services\GeminiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 /**
  * PlantsController
@@ -36,19 +37,67 @@ class PlantsController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        $plants = Plant::where('user_id', $user->id)
-            ->orderBy('name')
-            ->get();
+        // Record plant visit for attendance streak tracking
+        UserDailyActivity::recordPlantVisit($user->id);
+
+        $careFilter = $request->query('care_filter', $request->query('filter')); // expected: 'water', 'sunlight', 'fertilize'
+        $categoryFilter = $request->query('category'); // expected: 'normal', 'vegetable', 'fruit'
+        $careFilter = in_array($careFilter, ['water', 'sunlight', 'fertilize']) ? $careFilter : null;
+        $categoryFilter = in_array($categoryFilter, ['normal', 'vegetable', 'fruit']) ? $categoryFilter : null;
+
+        $duePlantIds = null;
+        if ($careFilter) {
+            $taskTypes = match ($careFilter) {
+                'water' => ['Water', 'water', 'watering'],
+                'sunlight' => ['Sunlight', 'sunlight'],
+                'fertilize' => ['Fertilize', 'fertilize', 'fertilizer'],
+            };
+            $nowEnd = now()->endOfDay();
+
+            $duePlantIds = CareTask::query()
+                ->select(['plant_id', 'last_completed', 'frequency_days'])
+                ->whereIn('type', $taskTypes)
+                ->whereHas('plant', function ($query) use ($user, $categoryFilter) {
+                    $query->where('user_id', $user->id)
+                        ->when($categoryFilter, function ($categoryQuery) use ($categoryFilter) {
+                            $categoryQuery->where('category', $categoryFilter);
+                        });
+                })
+                ->get()
+                ->filter(function ($task) use ($nowEnd) {
+                    return $task->last_completed->copy()->addDays($task->frequency_days)->lte($nowEnd);
+                })
+                ->pluck('plant_id')
+                ->unique()
+                ->values();
+        }
+
+        $plantsQuery = Plant::query()
+            ->where('user_id', $user->id)
+            ->when($categoryFilter, function ($query) use ($categoryFilter) {
+                $query->where('category', $categoryFilter);
+            })
+            ->when($duePlantIds !== null, function ($query) use ($duePlantIds) {
+                $query->whereIn('id', $duePlantIds);
+            })
+            ->orderByDesc('is_favorite')
+            ->orderBy('name');
+
+        $plants = $plantsQuery->get();
 
         return view('pages.plants.index', [
             'plants' => $plants,
             'user' => $user,
+            'activeFilter' => $careFilter ?? null,
+            'activeCategory' => $categoryFilter ?? null,
         ]);
     }
 
     public function show(Request $request, $id)
     {
-        $plant = Plant::findOrFail($id);
+        $plant = Plant::with(['careTasks', 'journals' => function ($query) {
+            $query->latest();
+        }])->findOrFail($id);
 
         /** @var \App\Models\User $user */
         $user = $request->user();
@@ -56,6 +105,8 @@ class PlantsController extends Controller
         if ($plant->user_id !== $user->id) {
             return abort(403, 'Unauthorized');
         }
+
+        UserDailyActivity::recordPlantVisit($user->id);
 
         return view('pages.plants.show', [
             'plant' => $plant,
@@ -107,6 +158,7 @@ class PlantsController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'species' => 'required|string|max:255',
+            'category' => 'nullable|in:normal,vegetable,fruit',
             'care_recommendations' => 'nullable|string|max:1000',
             'photo' => 'nullable|image|max:5120',
         ]);
@@ -121,6 +173,7 @@ class PlantsController extends Controller
         $plant->update([
             'name' => $validated['name'],
             'species' => $validated['species'],
+            'category' => $validated['category'] ?? $plant->category,
             'care_recommendations' => $validated['care_recommendations'] ?? $plant->care_recommendations,
             'photo_url' => $photoUrl,
         ]);
@@ -159,6 +212,37 @@ class PlantsController extends Controller
         return redirect()->route('plants.index')->with('success', 'Plant deleted successfully!');
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'plant_ids' => 'required|array|min:1',
+            'plant_ids.*' => 'integer',
+        ]);
+
+        $plants = Plant::where('user_id', $user->id)
+            ->whereIn('id', $validated['plant_ids'])
+            ->get();
+
+        if ($plants->isEmpty()) {
+            return redirect()->route('plants.index')->with('error', 'No plants were selected for deletion.');
+        }
+
+        foreach ($plants as $plant) {
+            $plant->careTasks()->delete();
+            $plant->delete();
+        }
+
+        $count = $plants->count();
+        $message = $count === 1
+            ? '1 plant deleted successfully.'
+            : "{$count} plants deleted successfully.";
+
+        return redirect()->route('plants.index')->with('success', $message);
+    }
+
     public function create()
     {
         return view('pages.plants.create');
@@ -172,6 +256,7 @@ class PlantsController extends Controller
         $validated = $request->validate([
             'name' => 'required|string',
             'species' => 'required|string',
+            'category' => 'nullable|in:normal,vegetable,fruit',
             'photo' => 'nullable|image|max:5120',
             'care_recommendations' => 'nullable|string',
             'water_frequency' => 'nullable|integer|min:1|max:365',
@@ -188,6 +273,7 @@ class PlantsController extends Controller
             'user_id' => $user->id,
             'name' => $validated['name'],
             'species' => $validated['species'],
+            'category' => $validated['category'] ?? 'normal',
             'photo_url' => $photoUrl,
             'care_consistency' => 0,
             'is_neglected' => false,
@@ -248,6 +334,9 @@ class PlantsController extends Controller
         $task->update(['last_completed' => now()]);
         $user->increment('pvt_balance', self::PVT_CARE_REWARD);
 
+        // Record care log for attendance tracking
+        UserDailyActivity::recordCareLog($user->id);
+
         // === CARE CONSISTENCY TRACKING ===
         // Every valid care log should visibly recover consistency. The daily
         // recalculation command still handles decay from missed care.
@@ -271,25 +360,10 @@ class PlantsController extends Controller
         }
         $plant->save();
 
-        // Update user's daily streak.
-        $today = now()->toDateString();
-        $lastCareDate = $user->last_care_date?->toDateString();
-
-        if ($lastCareDate === $today) {
-            $streakMessage = " | {$user->daily_streak}-day streak!";
-        } else {
-            if ($lastCareDate === now()->subDay()->toDateString()) {
-                $user->daily_streak += 1;
-            } else {
-                $user->daily_streak = 1;
-                $user->daily_streak_start_date = $today;
-            }
-
-            $user->last_care_date = $today;
-            $user->save();
-
-            $streakMessage = " | {$user->daily_streak}-day streak!";
-        }
+        // Build success message with current streak info
+        $streakMessage = $user->daily_streak > 0
+            ? " | {$user->daily_streak}-day streak!"
+            : " | Start your attendance streak by visiting daily!";
 
         return redirect()->back()->with('success', "{$taskType} logged successfully! +" . self::PVT_CARE_REWARD . " PVT, +{$consistencyReward}% care consistency{$streakMessage}");
     }
@@ -535,5 +609,39 @@ class PlantsController extends Controller
                 'last_completed' => now()->subDays($frequency),
             ]);
         }
+    }
+
+    /**
+     * Toggle favorite status for a plant
+     * 
+     * Allows users to mark a plant as favorite (pinned to top).
+     * Returns JSON response for AJAX requests.
+     * 
+     * Authorization: User must own the plant
+     * 
+     * @param Request $request The HTTP request
+     * @param int $id The plant ID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function toggleFavorite(Request $request, $id)
+    {
+        $plant = Plant::findOrFail($id);
+
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        // Verify ownership
+        if ($plant->user_id !== $user->id) {
+            return abort(403, 'Unauthorized');
+        }
+
+        $plant->is_favorite = !$plant->is_favorite;
+        $plant->save();
+
+        return response()->json([
+            'success' => true,
+            'is_favorite' => $plant->is_favorite,
+            'message' => $plant->is_favorite ? 'Added to favorites!' : 'Removed from favorites!',
+        ]);
     }
 }

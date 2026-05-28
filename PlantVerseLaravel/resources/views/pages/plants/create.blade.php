@@ -60,6 +60,19 @@
                 @enderror
             </div>
 
+            <!-- Category -->
+            <div>
+                <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select id="category" name="category" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent">
+                    <option value="normal" {{ old('category') == 'normal' ? 'selected' : '' }}>Normal Plant</option>
+                    <option value="vegetable" {{ old('category') == 'vegetable' ? 'selected' : '' }}>Vegetable</option>
+                    <option value="fruit" {{ old('category') == 'fruit' ? 'selected' : '' }}>Fruit</option>
+                </select>
+                @error('category')
+                <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
             <!-- Plant Preset Selection -->
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 class="text-lg font-semibold text-blue-900 mb-3">
@@ -97,7 +110,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <!-- Water Frequency -->
                         <div>
-                            <label for="water_frequency" class="block text-sm font-medium text-gray-700 mb-2">💧 Water (days)</label>
+                            <label for="water_frequency" class="block text-sm font-medium text-gray-700 mb-2">Water (days)</label>
                             <input type="number" id="water_frequency" name="water_frequency" value="{{ old('water_frequency', '') }}" min="1" max="365" placeholder="7" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent">
                             <p class="text-xs text-gray-500 mt-1">Typical: 1-14 days, Desert: 14+ days, Tropical: 2-7 days</p>
                             @error('water_frequency')
@@ -107,7 +120,7 @@
 
                         <!-- Sunlight Frequency -->
                         <div>
-                            <label for="sunlight_frequency" class="block text-sm font-medium text-gray-700 mb-2">☀️ Sunlight (days)</label>
+                            <label for="sunlight_frequency" class="block text-sm font-medium text-gray-700 mb-2">Sunlight (days)</label>
                             <input type="number" id="sunlight_frequency" name="sunlight_frequency" value="{{ old('sunlight_frequency', '') }}" min="1" max="365" placeholder="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent">
                             <p class="text-xs text-gray-500 mt-1">Typical: 1 day, Low-light: 3-7 days</p>
                             @error('sunlight_frequency')
@@ -117,7 +130,7 @@
 
                         <!-- Fertilize Frequency -->
                         <div>
-                            <label for="fertilize_frequency" class="block text-sm font-medium text-gray-700 mb-2">🌱 Fertilize (days)</label>
+                            <label for="fertilize_frequency" class="block text-sm font-medium text-gray-700 mb-2">Fertilize (days)</label>
                             <input type="number" id="fertilize_frequency" name="fertilize_frequency" value="{{ old('fertilize_frequency', '') }}" min="1" max="365" placeholder="30" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent">
                             <p class="text-xs text-gray-500 mt-1">Typical: 7-365 days, Growing: 14-30, Dormant: 60-365</p>
                             @error('fertilize_frequency')

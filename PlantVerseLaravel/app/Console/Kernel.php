@@ -5,6 +5,7 @@ namespace App\Console;
 use App\Console\Commands\CheckPlantNeglect;
 use App\Console\Commands\SendCareReminders;
 use App\Console\Commands\UpdateCareConsistency;
+use App\Console\Commands\UpdateAttendanceStreak;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -96,11 +97,38 @@ class Kernel extends ConsoleKernel
             ->description('Recalculate plant care consistency scores');
 
         /**
+         * UpdateAttendanceStreak Command
+         * 
+         * Runs daily at 4:00 AM to:
+         * - Check user attendance from the previous day
+         * - Verify if user logged in AND did minimum activity (visited plants or logged care)
+         * - Increment streak if minimum activity met
+         * - Reset streak to 0 if no activity or insufficient activity
+         * - Skip users on vacation
+         * 
+         * Frequency: Daily (runs at 4:00 AM server time)
+         * Impact: Affects user daily_streak and daily_streak_start_date
+         * 
+         * ATTENDANCE REQUIREMENTS:
+         * - Must log in to dashboard
+         * - Must visit plants page OR log at least one care task
+         * 
+         * Command: php artisan update:attendance-streak
+         * Manual execution supported for testing
+         */
+        $schedule->command(UpdateAttendanceStreak::class)
+            ->daily()
+            ->at('04:00')
+            ->name('update-attendance-streak')
+            ->description('Update daily streaks based on user attendance');
+
+        /**
          * Optional: Debug/Development Only
          * Uncomment below to test scheduling every minute (development only!)
          * $schedule->command(CheckPlantNeglect::class)->everyMinute();
          * $schedule->command(SendCareReminders::class)->everyMinute();
          * $schedule->command(UpdateCareConsistency::class)->everyMinute();
+         * $schedule->command(UpdateAttendanceStreak::class)->everyMinute();
          */
     }
 

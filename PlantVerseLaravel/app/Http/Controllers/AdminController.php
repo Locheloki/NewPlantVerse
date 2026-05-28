@@ -38,7 +38,7 @@ class AdminController extends Controller
 
         $users->each(function (User $user) {
             $uniquePlants = $user->plants
-                ->unique(fn ($plant) => strtolower(trim($plant->name)) . '|' . strtolower(trim($plant->species)))
+                ->unique(fn($plant) => strtolower(trim($plant->name)) . '|' . strtolower(trim($plant->species)))
                 ->values();
 
             $user->setRelation('plants', $uniquePlants);
@@ -121,6 +121,48 @@ class AdminController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Admin: Care consistency update command failed', [
+                'admin_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Command failed: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Run attendance streak update command
+     * 
+     * Updates daily streaks based on user attendance and minimum daily activity.
+     * Useful for testing the attendance-based streak calculation.
+     */
+    public function runAttendanceStreakCommand(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        if (!$user->is_admin) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            Artisan::call('update:attendance-streak');
+            $output = Artisan::output();
+
+            Log::info('Admin: Attendance streak update command executed', [
+                'admin_id' => $user->id,
+                'output' => $output,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Attendance streak update command executed',
+                'output' => $output,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Admin: Attendance streak update command failed', [
                 'admin_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
@@ -261,7 +303,7 @@ class AdminController extends Controller
         }
 
         $task = $plant->careTasks
-            ->sortBy(fn ($task) => $task->last_completed?->copy()->addDays($task->frequency_days)->timestamp ?? 0)
+            ->sortBy(fn($task) => $task->last_completed?->copy()->addDays($task->frequency_days)->timestamp ?? 0)
             ->first();
 
         if (!$task) {

@@ -19,9 +19,9 @@
                     Run Plant Neglect Check
                 </button>
 
-                <button onclick="runCommand('decay')"
-                    class="rounded-lg bg-orange-500 px-4 py-3 font-bold text-white shadow-md transition hover:bg-orange-600">
-                    Run Streak Decay Check
+                <button onclick="runCommand('attendance')"
+                    class="rounded-lg bg-blue-500 px-4 py-3 font-bold text-white shadow-md transition hover:bg-blue-600">
+                    Run Attendance Streak Update
                 </button>
             </div>
 
@@ -173,7 +173,7 @@
     function runCommand(type) {
         const endpoints = {
             neglect: '/admin/command/plant-neglect',
-            decay: '/admin/command/streak-decay',
+            attendance: '/admin/command/attendance-streak',
         };
         const endpoint = endpoints[type];
 

@@ -19,8 +19,10 @@ class Plant extends Model
         'name',
         'species',
         'photo_url',
+        'category',
         'care_consistency',
         'is_neglected',
+        'is_favorite',
         'care_streak',
         'streak_started_at',
         'last_care_completed_at',
@@ -43,9 +45,11 @@ class Plant extends Model
     protected $casts = [
         'care_consistency' => 'integer',
         'is_neglected' => 'boolean',
+        'is_favorite' => 'boolean',
         'care_streak' => 'integer',
         'streak_started_at' => 'datetime',
         'last_care_completed_at' => 'datetime',
+        'category' => 'string',
     ];
 
     public function user(): BelongsTo

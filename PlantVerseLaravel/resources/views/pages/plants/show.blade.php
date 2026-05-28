@@ -87,7 +87,7 @@
                             <span class="text-xl font-bold text-green-600">{{ $plant->care_consistency }}%</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-3">
-                            <div class="bg-green-500 h-3 rounded-full transition-all" style="--consistency: {{ $plant->care_consistency }}%; width: var(--consistency);"></div>
+                            <div class="care-consistency-bar bg-green-500 h-3 rounded-full transition-all" data-care-consistency="{{ $plant->care_consistency }}"></div>
                         </div>
                     </div>
 
@@ -164,45 +164,65 @@
                 </div>
             </div>
 
-            <!-- Plant Care Advice -->
+            <!-- Plant Gallery -->
             <div class="bg-white rounded-lg shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">
-                    <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>Plant Care Advice
-                </h3>
-
-                <div x-data="{ question: '', loading: false, advice: null, error: null }">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Ask a question about {{ $plant->name }}</label>
-                            <textarea x-model="question" placeholder="e.g., Why are the leaves turning yellow?" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent" rows="3"></textarea>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                                <input type="text" placeholder="e.g., New York" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Conditions</label>
-                                <input type="text" placeholder="e.g., Low light, humid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm">
-                            </div>
-                        </div>
-
-                        <button @click="getAdvice()" :disabled="loading || !question" class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg">
-                            <span x-show="!loading">
-                                <i class="fas fa-magic mr-2"></i>Get AI Advice
-                            </span>
-                            <span x-show="loading">
-                                <i class="fas fa-spinner fa-spin mr-2"></i>Getting advice...
-                            </span>
-                        </button>
-
-                        <div x-show="error" class="p-3 bg-red-100 border border-red-300 text-red-700 rounded" x-text="error"></div>
-                        <div x-show="advice" class="p-4 bg-blue-50 border border-blue-300 rounded-lg">
-                            <p class="text-gray-700" x-text="advice"></p>
-                        </div>
+                <div class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-images text-green-600 mr-2"></i>{{ $plant->name }}'s Gallery
+                        </h3>
+                        <p class="mt-1 text-sm text-gray-600">Keep progress photos of this plant as it grows and changes.</p>
                     </div>
                 </div>
+
+                <form action="{{ route('plants.journal.store', $plant->id) }}" method="POST" enctype="multipart/form-data" class="mb-6 rounded-lg border border-green-100 bg-green-50 p-4">
+                    @csrf
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                        <div>
+                            <label for="gallery-photo" class="mb-1 block text-sm font-medium text-gray-700">Add gallery photo</label>
+                            <input id="gallery-photo" name="photo" type="file" accept="image/*" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm" required>
+                            @error('photo')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <button type="submit" class="inline-flex w-full items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 sm:w-auto">
+                            <i class="fas fa-plus mr-2"></i>Add Photo
+                        </button>
+                    </div>
+                    <div class="mt-3">
+                        <label for="gallery-note" class="mb-1 block text-sm font-medium text-gray-700">Note</label>
+                        <textarea id="gallery-note" name="note" rows="2" placeholder="Optional note about what changed..." class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-green-600"></textarea>
+                        @error('note')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </form>
+
+                @php
+                $galleryEntries = $plant->journals->whereNotNull('photo_url')->sortByDesc('created_at');
+                @endphp
+
+                @if($galleryEntries->isNotEmpty())
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    @foreach($galleryEntries as $entry)
+                    <div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                        <img src="{{ asset('storage/' . $entry->photo_url) }}" alt="{{ $plant->name }} gallery photo" class="h-44 w-full object-cover">
+                        <div class="p-3">
+                            <p class="text-xs text-gray-500">{{ $entry->created_at->format('M d, Y') }}</p>
+                            @if($entry->note)
+                            <p class="mt-1 text-sm text-gray-700">{{ $entry->note }}</p>
+                            @endif
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @else
+                <div class="rounded-lg border border-dashed border-gray-300 p-8 text-center">
+                    <i class="fas fa-images mb-3 block text-4xl text-gray-300"></i>
+                    <p class="font-medium text-gray-700">No gallery photos yet</p>
+                    <p class="mt-1 text-sm text-gray-500">Add photos to document {{ $plant->name }} over time.</p>
+                </div>
+                @endif
             </div>
         </div>
     </div>
@@ -221,8 +241,10 @@
         document.getElementById('deleteModal').classList.add('hidden');
     }
 
-    function getAdvice() {
-        // This will be populated by Alpine.js
-    }
+    document.querySelectorAll('.care-consistency-bar').forEach(function(bar) {
+        const value = Number.parseInt(bar.dataset.careConsistency || '0', 10);
+        const percentage = Math.min(100, Math.max(0, Number.isNaN(value) ? 0 : value));
+        bar.style.width = percentage + '%';
+    });
 </script>
 @endsection

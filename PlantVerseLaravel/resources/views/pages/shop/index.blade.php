@@ -16,7 +16,7 @@
         <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
             <div class="h-40 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center relative">
                 <span class="text-6xl">{{ $reward->icon ?? '🎁' }}</span>
-                
+
                 {{-- REFACTORED: Show "Owned" badge for purchased rewards --}}
                 @if(in_array($reward->id, $ownedRewardIds))
                 <div class="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
@@ -38,23 +38,23 @@
 
                 {{-- REFACTORED: Check ownership status to determine button state --}}
                 @if(in_array($reward->id, $ownedRewardIds))
-                    {{-- User already owns this reward --}}
-                    <button disabled class="w-full bg-gray-300 text-gray-600 px-4 py-2 rounded-lg font-medium cursor-not-allowed flex items-center justify-center gap-2">
-                        <i class="fas fa-check-circle"></i>Already Owned
-                    </button>
+                {{-- User already owns this reward - offer checkout --}}
+                <a href="{{ route('checkout.show', $reward->id) }}" class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-2">
+                    <i class="fas fa-truck"></i>Checkout & Deliver
+                </a>
                 @elseif($user->pvt_balance >= $reward->pvt_cost)
-                    {{-- User can afford this reward --}}
-                    <form action="{{ route('shop.redeem', $reward->id) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition">
-                            <i class="fas fa-shopping-cart mr-2"></i>Redeem
-                        </button>
-                    </form>
-                @else
-                    {{-- User cannot afford this reward --}}
-                    <button disabled class="w-full bg-gray-400 text-white px-4 py-2 rounded-lg font-medium cursor-not-allowed">
-                        <i class="fas fa-lock mr-2"></i>Not Enough PVT
+                {{-- User can afford this reward --}}
+                <form action="{{ route('shop.redeem', $reward->id) }}" method="POST">
+                    @csrf
+                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition">
+                        <i class="fas fa-shopping-cart mr-2"></i>Redeem
                     </button>
+                </form>
+                @else
+                {{-- User cannot afford this reward --}}
+                <button disabled class="w-full bg-gray-400 text-white px-4 py-2 rounded-lg font-medium cursor-not-allowed">
+                    <i class="fas fa-lock mr-2"></i>Not Enough PVT
+                </button>
                 @endif
 
                 @if(auth()->user()->isAdmin())

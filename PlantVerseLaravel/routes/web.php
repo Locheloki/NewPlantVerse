@@ -4,9 +4,12 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\PlantsController;
 use App\Http\Controllers\MilestonesController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\OrdersController;
 use App\Http\Controllers\PlantCareController;
 use App\Http\Controllers\AdminController;
 
@@ -33,12 +36,26 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
 
     // Plants routes
     Route::prefix('/my-plants')->group(function () {
         Route::get('/', [PlantsController::class, 'index'])->name('plants.index');
         Route::get('/add', [PlantsController::class, 'create'])->name('plants.create');
         Route::post('/', [PlantsController::class, 'store'])->name('plants.store');
+        Route::delete('/bulk-delete', [PlantsController::class, 'bulkDestroy'])->name('plants.bulk-destroy');
+
+        /**
+         * MORE SPECIFIC ROUTES (before generic /{id} route)
+         */
+        Route::post('/{id}/toggle-favorite', [PlantsController::class, 'toggleFavorite'])->name('plants.toggle-favorite');
+        Route::post('/{id}/identify', [PlantsController::class, 'identifyPlant'])->name('plants.identify');
+        Route::get('/{id}/edit', [PlantsController::class, 'edit'])->name('plants.edit');
+        Route::get('/{id}/care-schedule', [PlantsController::class, 'editCareSchedule'])->name('plants.care-schedule.edit');
+
+        /**
+         * GENERIC ROUTES (after specific routes)
+         */
         Route::get('/{id}', [PlantsController::class, 'show'])->name('plants.show');
 
         /**
@@ -47,12 +64,10 @@ Route::middleware('auth')->group(function () {
          * Protected with ownership verification in controller methods.
          * Users can only edit/update/delete their own plants.
          */
-        Route::get('/{id}/edit', [PlantsController::class, 'edit'])->name('plants.edit');
         Route::put('/{id}', [PlantsController::class, 'update'])->name('plants.update');
         Route::delete('/{id}', [PlantsController::class, 'destroy'])->name('plants.destroy');
 
         Route::post('/{plantId}/log-care/{taskType}', [PlantsController::class, 'logCare'])->name('plants.log-care');
-        Route::post('/{id}/identify', [PlantsController::class, 'identifyPlant'])->name('plants.identify');
 
         /**
          * PLANT JOURNAL OPERATIONS
@@ -69,7 +84,6 @@ Route::middleware('auth')->group(function () {
          * Users can research and adjust Water, Sunlight, and Fertilize schedules.
          * Protected with ownership verification in controller methods.
          */
-        Route::get('/{id}/care-schedule', [PlantsController::class, 'editCareSchedule'])->name('plants.care-schedule.edit');
         Route::put('/{id}/care-schedule', [PlantsController::class, 'updateCareSchedule'])->name('plants.care-schedule.update');
     });
 
@@ -97,6 +111,29 @@ Route::middleware('auth')->group(function () {
     });
 
     /**
+     * CHECKOUT ROUTES
+     * 
+     * Checkout flow for delivering redeemed rewards.
+     * Users enter delivery address information and place orders.
+     */
+    Route::prefix('/checkout')->group(function () {
+        Route::get('/{rewardId}', [CheckoutController::class, 'show'])->name('checkout.show');
+        Route::post('/{rewardId}', [CheckoutController::class, 'store'])->name('checkout.store');
+    });
+
+    /**
+     * ORDERS ROUTES
+     * 
+     * Manage and track orders placed for reward delivery.
+     * Users can view their order history and track delivery status.
+     */
+    Route::prefix('/orders')->group(function () {
+        Route::get('/', [OrdersController::class, 'index'])->name('orders.index');
+        Route::get('/{orderId}', [OrdersController::class, 'show'])->name('orders.show');
+        Route::post('/{orderId}/cancel', [OrdersController::class, 'cancel'])->name('orders.cancel');
+    });
+
+    /**
      * ADMIN CONTROL PANEL
      * 
      * Complete admin dashboard for testing and managing the streak system.
@@ -116,5 +153,6 @@ Route::middleware('auth')->group(function () {
         // Command execution routes
         Route::post('/admin/command/plant-neglect', [AdminController::class, 'runNeglectCommand'])->name('admin.command.plant-neglect');
         Route::post('/admin/command/care-consistency', [AdminController::class, 'runCareConsistencyCommand'])->name('admin.command.care-consistency');
+        Route::post('/admin/command/attendance-streak', [AdminController::class, 'runAttendanceStreakCommand'])->name('admin.command.attendance-streak');
     });
 });
