@@ -11,55 +11,69 @@
     </div>
     @endif
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         @forelse($rewards as $reward)
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-            <div class="h-40 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center relative">
-                <span class="text-6xl">{{ $reward->icon ?? '🎁' }}</span>
+        <div class="overflow-hidden rounded-lg bg-white shadow-lg transition-shadow hover:shadow-xl">
+            <div class="relative h-56 bg-gray-100">
+                @if($reward->image_path)
+                <img src="{{ asset('storage/' . $reward->image_path) }}" alt="{{ $reward->title }}" class="h-full w-full object-cover">
+                @else
+                <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-green-100 to-purple-100">
+                    @if($reward->icon)
+                    <span class="text-6xl">{{ $reward->icon }}</span>
+                    @else
+                    <i class="fas fa-gift text-6xl text-purple-400"></i>
+                    @endif
+                </div>
+                @endif
 
-                {{-- REFACTORED: Show "Owned" badge for purchased rewards --}}
                 @if(in_array($reward->id, $ownedRewardIds))
-                <div class="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                <div class="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-green-500 px-3 py-1 text-xs font-bold text-white">
                     <i class="fas fa-check-circle"></i> Owned
                 </div>
                 @endif
             </div>
 
             <div class="p-6">
-                <h3 class="text-lg font-bold text-gray-800 mb-2">{{ $reward->title }}</h3>
-                <p class="text-sm text-gray-600 mb-4">{{ $reward->description }}</p>
+                <div class="mb-4 flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <h3 class="text-xl font-bold text-gray-900">{{ $reward->title }}</h3>
+                    </div>
 
-                <div class="mb-4 p-3 bg-green-50 rounded-lg text-center">
-                    <p class="text-xs text-gray-600 mb-1">Cost:</p>
+                    @if($reward->icon)
+                    <span class="shrink-0 text-3xl">{{ $reward->icon }}</span>
+                    @endif
+                </div>
+
+                <p class="mb-4 whitespace-pre-line text-sm leading-6 text-gray-600">{{ $reward->description }}</p>
+
+                <div class="mb-4 rounded-lg bg-green-50 p-3 text-center">
+                    <p class="mb-1 text-xs text-gray-600">Cost:</p>
                     <p class="text-2xl font-bold text-green-600">
                         <i class="fas fa-coins text-yellow-500"></i> {{ $reward->pvt_cost }} PVT
                     </p>
                 </div>
 
-                {{-- REFACTORED: Check ownership status to determine button state --}}
                 @if(in_array($reward->id, $ownedRewardIds))
-                {{-- User already owns this reward - offer checkout --}}
-                <a href="{{ route('checkout.show', $reward->id) }}" class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-2">
+                <a href="{{ route('checkout.show', $reward->id) }}" class="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-center font-medium text-white transition hover:bg-blue-700">
                     <i class="fas fa-truck"></i>Checkout & Deliver
                 </a>
                 @elseif($user->pvt_balance >= $reward->pvt_cost)
-                {{-- User can afford this reward --}}
                 <form action="{{ route('shop.redeem', $reward->id) }}" method="POST">
                     @csrf
-                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition">
+                    <button type="submit" class="w-full rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition hover:bg-green-700">
                         <i class="fas fa-shopping-cart mr-2"></i>Redeem
                     </button>
                 </form>
                 @else
-                {{-- User cannot afford this reward --}}
-                <button disabled class="w-full bg-gray-400 text-white px-4 py-2 rounded-lg font-medium cursor-not-allowed">
+                <button disabled class="w-full cursor-not-allowed rounded-lg bg-gray-400 px-4 py-2 font-medium text-white">
                     <i class="fas fa-lock mr-2"></i>Not Enough PVT
                 </button>
                 @endif
 
                 @if(auth()->user()->isAdmin())
-                <div class="mt-4 pt-4 border-t border-gray-100">
-                    <a href="{{ route('shop.edit', $reward->id) }}" class="w-full block text-center bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg font-medium transition">
+                <div class="mt-4 border-t border-gray-100 pt-4">
+                    <a href="{{ route('shop.edit', $reward->id) }}" class="block w-full rounded-lg bg-purple-100 px-4 py-2 text-center font-medium text-purple-700 transition hover:bg-purple-200">
                         <i class="fas fa-edit mr-2"></i>Edit Listing
                     </a>
                 </div>
@@ -67,9 +81,9 @@
             </div>
         </div>
         @empty
-        <div class="col-span-full text-center py-12">
-            <i class="fas fa-gift text-6xl text-gray-300 mb-4 block"></i>
-            <p class="text-gray-500 text-lg">No rewards available</p>
+        <div class="col-span-full py-12 text-center">
+            <i class="fas fa-gift mb-4 block text-6xl text-gray-300"></i>
+            <p class="text-lg text-gray-500">No rewards available</p>
         </div>
         @endforelse
     </div>

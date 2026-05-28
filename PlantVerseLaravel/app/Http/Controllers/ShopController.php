@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Reward;
 use App\Models\UserDailyActivity;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * ShopController
@@ -115,7 +116,18 @@ class ShopController extends Controller
             'description' => 'required|string',
             'pvt_cost' => 'required|integer|min:0',
             'icon' => 'nullable|string|max:10',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
         ]);
+
+        unset($validatedData['image']);
+
+        if ($request->hasFile('image')) {
+            if ($reward->image_path) {
+                Storage::disk('public')->delete($reward->image_path);
+            }
+
+            $validatedData['image_path'] = $request->file('image')->store('rewards', 'public');
+        }
 
         $reward->update($validatedData);
 

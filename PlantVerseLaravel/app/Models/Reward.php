@@ -18,6 +18,7 @@ class Reward extends Model
         'description',
         'pvt_cost',
         'icon',
+        'image_path',
         'image_hint',
     ];
 
